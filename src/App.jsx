@@ -74,13 +74,13 @@ const PRESETS = [
     image: '/midback_jumbo_twist.jpg',
     bgGradient: 'from-rose-950 to-red-900',
   },
-  // {
-  //   id: 'ear_medium_twist',
-  //   label: 'Bob Twists',
-  //   sublabel: 'Medium · Ear',
-  //   image: '/ear_medium_twist.jpg',
-  //   bgGradient: 'from-sky-950 to-blue-900',
-  // },
+  {
+    id: 'ear_medium_twist',
+    label: 'Bob Twists',
+    sublabel: 'Medium · Ear',
+    image: '/ear_medium_twist.jpg',
+    bgGradient: 'from-sky-950 to-blue-900',
+  },
   {
     id: 'hip_large_twist',
     label: 'Long Twists',
