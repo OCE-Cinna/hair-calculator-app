@@ -1,79 +1,11 @@
-import React, { useState, useEffect, useRef, Suspense, forwardRef, useMemo } from 'react';
-
-// ICON IMPORTS
+import React, { useState, useRef } from 'react';
 import { Menu, X, ChevronLeft, ChevronRight, Sparkles, Github, Info } from 'lucide-react';
-// STYLESHEET IMPORTS
 import './App.css';
-
-// R3F and Drei Imports
-import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import { Html, OrbitControls, Instances, Instance } from '@react-three/drei';
-import * as THREE from 'three';
-
+import { useHairStore } from './store/hairStore';
+import { Experience } from './components/Experience';
 
 // ============================================================
-// 1. DATA MAPS
-// Each entry: [label, calculationModifier]
-// ============================================================
-
-export const styleMap = {
-  1: ['Knotless Braids', 1],
-  2: ['Box Braids', 3],
-  3: ['Twist', 4],
-  4: ['Locs', 5],
-};
-
-export const thicknessMap = {
-  1: ['Micro', 0.5],
-  2: ['Small', 0.7],
-  3: ['Smedium', 0.8],
-  4: ['Medium', 1.0],
-  5: ['Large', 2.0],
-  6: ['Jumbo', 3.0],
-};
-
-export const lengthMap = {
-  1: ['Ear', 0.5],
-  2: ['Neck', 0.7],
-  3: ['Shoulder', 1.0],
-  4: ['Mid-back', 1.2],
-  5: ['Waist', 1.5],
-  6: ['Hip', 2.0],
-};
-
-export const densityMap = {
-  1: ['12', 0.5],
-  2: ['24', 0.8],
-  3: ['40', 0.95],
-  4: ['80', 1.0],
-  5: ['100', 2.0],
-  6: ['200', 3.0],
-  7: ['300+', 4.0],
-};
-
-// Maps density position -> approximate braid count for 3D rendering
-const DENSITY_COUNTS = { 1: 8, 2: 16, 3: 28, 4: 42, 5: 60, 6: 90, 7: 120 };
-
-// Maps style position -> hair geometry shape
-const STYLE_GEOMETRIES = {
-  1: 'capsule',   // Knotless: smooth capsule
-  2: 'box',       // Box Braids: slightly boxier
-  3: 'cylinder',  // Twist: cylindrical
-  4: 'cylinder',  // Locs: cylindrical with taper (handled in HairStrands)
-};
-
-// Hair strand colors per style
-const STYLE_COLORS = {
-  1: '#2c1810',
-  2: '#1a0f08',
-  3: '#3d2314',
-  4: '#2a1a0e',
-};
-
-
-// ============================================================
-// 2. PRESET SYSTEM
-// Filename convention: {length}_{thickness}_{style}.jpg
+// PRESET SYSTEM
 // ============================================================
 
 const STYLE_ALIASES = {
@@ -93,10 +25,6 @@ const THICKNESS_ALIASES = {
   medium: 4, large: 5, jumbo: 6,
 };
 
-/**
- * parsePresetFilename("hip_medium_lock")
- * -> { lengthPos: 6, thicknessPos: 4, stylePos: 4, densityPos: 4 }
- */
 const parsePresetFilename = (filename) => {
   const base = filename.replace(/\.[^.]+$/, '').toLowerCase();
   const parts = base.split('_');
@@ -111,7 +39,6 @@ const parsePresetFilename = (filename) => {
     if (STYLE_ALIASES[part] !== undefined) stylePos = STYLE_ALIASES[part];
   });
 
-  // Default density based on thickness (thicker = fewer = lower density)
   const densityDefaults = { 1: 6, 2: 5, 3: 4, 4: 4, 5: 3, 6: 2 };
   const densityPos = densityDefaults[thicknessPos] || 4;
 
@@ -163,10 +90,10 @@ const PRESETS = [
   },
 ];
 
+// ============================================================
+// BURGER MENU
+// ============================================================
 
-// ============================================================
-// 3. BURGER MENU
-// ============================================================
 const BurgerMenu = ({ isOpen, onClose }) => (
   <>
     <div
@@ -196,19 +123,17 @@ const BurgerMenu = ({ isOpen, onClose }) => (
         <section>
           <div className="flex items-center gap-2 mb-3">
             <Info className="h-4 w-4 text-gray-400 shrink-0" />
-            <h2 className="font-semibold text-gray-800 uppercase tracking-widest text-xs">About this project</h2>
+            <h2 className="font-semibold text-gray-800 uppercase tracking-widest text-xs">
+              About this project
+            </h2>
           </div>
           <p className="text-gray-600">
             <strong className="text-gray-800">Cinna's PAH</strong> is a 3D Protective Afro-Hairstyle
-            Visualizer & Calculator built as an ICT portfolio project.
-          </p>
-          <p className="text-gray-600 mt-3">
-            It helps people planning protective hairstyles (braids, locs, twists) estimate how many packs
-            of hair extensions they'll need — based on style, thickness, length, and density preferences.
+            Visualizer & Calculator with procedural hair placement using raycasting and UV texture masking.
           </p>
           <p className="text-gray-600 mt-3">
             Rotate the 3D head model in real time, dial in your parameters using the sliders, and get an
-            instant pack estimate. Use the preset gallery to quickly jump to a saved style.
+            instant pack estimate. Hair strands are procedurally placed based on scalp texture patterns.
           </p>
         </section>
 
@@ -218,31 +143,34 @@ const BurgerMenu = ({ isOpen, onClose }) => (
             <h2 className="font-semibold text-gray-800 uppercase tracking-widest text-xs">How it works</h2>
           </div>
           <ol className="space-y-2 list-decimal list-inside text-gray-600">
-            <li>Pick a <strong className="text-gray-800">braid style</strong> (Knotless, Box, Twist, Locs)</li>
+            <li>Pick a <strong className="text-gray-800">braid style</strong></li>
             <li>Set <strong className="text-gray-800">thickness</strong> from Micro to Jumbo</li>
             <li>Choose your desired <strong className="text-gray-800">length</strong></li>
             <li>Adjust <strong className="text-gray-800">density</strong> (number of braids)</li>
-            <li>Read off the <strong className="text-gray-800">estimated packs</strong> needed</li>
+            <li>Hair placement updates based on scalp texture masking</li>
           </ol>
         </section>
 
         <section className="bg-gray-50 rounded-xl p-4 border border-gray-100">
           <p className="text-xs text-gray-500 leading-relaxed">
-            <strong className="text-gray-700">Calculation formula:</strong><br />
-            <code className="bg-gray-200 px-1 rounded text-xs">
-              (style + thickness + density) x length x 0.95
-            </code>
-            <br /><br />
-            All modifiers are derived from real-world braid data. The 0.95 factor accounts for
-            typical variation in install tightness. Results are estimates — always buy one extra pack.
+            <strong className="text-gray-700">Calculation formula:</strong>
+            <br />
+            <code className="bg-gray-200 px-1 rounded text-xs">(style + thickness + density) x length x 0.95</code>
+            <br />
+            <br />
+            Hair placement uses <strong>raycasting + UV texture masking</strong>. Rays shot from above
+            the head intersect with the scalp mesh; white pixels in the scalp texture spawn hair, black
+            pixels create parting/skipped areas.
           </p>
         </section>
 
         <section>
           <h2 className="font-semibold text-gray-800 uppercase tracking-widest text-xs mb-3">Tech stack</h2>
           <div className="flex flex-wrap gap-2">
-            {['React 19', 'Three.js', 'R3F', '@react-three/drei', 'Tailwind CSS v4', 'Vite'].map(t => (
-              <span key={t} className="px-2 py-1 bg-gray-100 rounded-md text-xs text-gray-600 font-mono">{t}</span>
+            {['React 19', 'R3F', 'Zustand', 'Three.js', 'Tailwind CSS v4', 'Vite'].map(t => (
+              <span key={t} className="px-2 py-1 bg-gray-100 rounded-md text-xs text-gray-600 font-mono">
+                {t}
+              </span>
             ))}
           </div>
         </section>
@@ -251,7 +179,7 @@ const BurgerMenu = ({ isOpen, onClose }) => (
       <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex items-center justify-between">
         <span className="text-xs text-gray-400">MIT License · Open Source</span>
         <a
-          href="https://github.com"
+          href="https://github.com/OCE-Cinna/hair-calculator-app"
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-800 transition-colors"
@@ -264,10 +192,10 @@ const BurgerMenu = ({ isOpen, onClose }) => (
   </>
 );
 
+// ============================================================
+// PRESET CARD
+// ============================================================
 
-// ============================================================
-// 4. PRESET CARD
-// ============================================================
 const PresetCard = ({ preset, isActive, onClick }) => {
   const parsed = parsePresetFilename(preset.id);
 
@@ -290,13 +218,14 @@ const PresetCard = ({ preset, isActive, onClick }) => {
           src={preset.image}
           alt={preset.label}
           className="absolute inset-0 w-full h-full object-cover object-top"
-          onError={(e) => { e.target.style.display = 'none'; }}
+          onError={(e) => {
+            e.target.style.display = 'none';
+          }}
         />
       ) : (
         <div className={`absolute inset-0 bg-gradient-to-b ${preset.bgGradient}`} />
       )}
 
-      {/* Subtle hair-strand texture */}
       <div
         className="absolute inset-0 opacity-20"
         style={{
@@ -308,7 +237,6 @@ const PresetCard = ({ preset, isActive, onClick }) => {
         }}
       />
 
-      {/* Text legibility gradient */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
       {isActive && (
@@ -320,25 +248,15 @@ const PresetCard = ({ preset, isActive, onClick }) => {
       <div className="absolute bottom-0 left-0 right-0 p-3.5 text-left">
         <p className="text-white font-semibold text-sm leading-tight">{preset.label}</p>
         <p className="text-white/60 text-xs mt-0.5">{preset.sublabel}</p>
-        <div className="mt-2 flex gap-1 flex-wrap">
-          {[
-            lengthMap[parsed.lengthPos]?.[0],
-            thicknessMap[parsed.thicknessPos]?.[0],
-          ].filter(Boolean).map((tag, i) => (
-            <span key={i} className="text-[10px] bg-white/15 text-white/80 px-1.5 py-0.5 rounded-full">
-              {tag}
-            </span>
-          ))}
-        </div>
       </div>
     </button>
   );
 };
 
+// ============================================================
+// PRESET GALLERY
+// ============================================================
 
-// ============================================================
-// 5. PRESET GALLERY
-// ============================================================
 const PresetGallery = ({ onSelectPreset, activePresetId }) => {
   const scrollRef = useRef(null);
 
@@ -389,161 +307,10 @@ const PresetGallery = ({ onSelectPreset, activePresetId }) => {
   );
 };
 
-
 // ============================================================
-// 6. THREE.JS SCENE COMPONENTS
-// ============================================================
-
-/** Directional light that follows the camera each frame */
-function CameraFollowLight({ intensity = 1 }) {
-  const { camera } = useThree();
-  const lightRef = useRef();
-
-  useFrame(() => {
-    if (!lightRef.current) return;
-    lightRef.current.position.copy(camera.position);
-    lightRef.current.target.position.set(0, 2, 0);
-    lightRef.current.target.updateMatrixWorld();
-  });
-
-  return <directionalLight ref={lightRef} intensity={intensity} />;
-}
-
-/** Fibonacci lattice — evenly distributes points on a sphere surface */
-function fibonacciSpherePoints(count, radius, yOffset = 0, yScale = 1.2) {
-  const points = [];
-  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
-
-  for (let i = 0; i < count; i++) {
-    const y = 1 - (i / (count - 1)) * 2;
-    const r = Math.sqrt(1 - y * y);
-    const theta = goldenAngle * i;
-    points.push(
-      new THREE.Vector3(
-        Math.cos(theta) * r * radius,
-        y * radius * yScale + yOffset,
-        Math.sin(theta) * r * radius
-      )
-    );
-  }
-
-  return points;
-}
-
-/** Egg-shaped head mesh */
-const HeadModel = forwardRef((props, ref) => (
-  <group ref={ref} {...props}>
-    <mesh position={[0, 2, 0]} scale={[1, 1.2, 1]}>
-      <sphereGeometry args={[0.9, 64, 64]} />
-      <meshStandardMaterial color="#80453d" roughness={0.7} metalness={0.2} />
-    </mesh>
-  </group>
-));
-
-/** Instanced hair strands distributed over the scalp area */
-function HairStrands({ stylePosition, thicknessPosition, lengthPosition, densityPosition }) {
-  const count = DENSITY_COUNTS[densityPosition] ?? 42;
-  const thicknessMod = thicknessMap[thicknessPosition][1];
-  const lengthMod = lengthMap[lengthPosition][1];
-  const styleKey = STYLE_GEOMETRIES[stylePosition];
-  const color = STYLE_COLORS[stylePosition];
-
-  // Locs are slightly thicker than plain cylinder twists
-  const locsMultiplier = stylePosition === 4 ? 1.3 : 1.0;
-  const strandRadius = 0.04 * thicknessMod * locsMultiplier;
-  const strandHeight = 0.3 * lengthMod;
-
-  // Distribute strands across the top 60% of the sphere (scalp area, not the neck)
-  const positions = useMemo(() => {
-    const all = fibonacciSpherePoints(count * 2, 0.92, 2, 1.2);
-    // Keep only the upper portion (y > 1.5 relative to head center at y=2)
-    return all.filter(p => p.y > 1.4).slice(0, count);
-  }, [count]);
-
-  // For each point, compute outward normal to orient the strand
-  const transforms = useMemo(() => {
-    return positions.map(p => {
-      const center = new THREE.Vector3(0, 2, 0);
-      const dir = p.clone().sub(center).normalize();
-      const quaternion = new THREE.Quaternion().setFromUnitVectors(
-        new THREE.Vector3(0, 1, 0),
-        dir
-      );
-      return { position: p, quaternion };
-    });
-  }, [positions]);
-
-  const geometry = useMemo(() => {
-    if (styleKey === 'box') {
-      return <boxGeometry args={[strandRadius * 1.4, strandHeight, strandRadius * 1.4]} />;
-    }
-    if (styleKey === 'cylinder') {
-      // Locs taper toward the tip; twists stay uniform
-      const topRadius = stylePosition === 4 ? strandRadius * 0.7 : strandRadius;
-      return <cylinderGeometry args={[topRadius, strandRadius, strandHeight, 6]} />;
-    }
-    // capsule — knotless braids
-    return <capsuleGeometry args={[strandRadius, strandHeight * 0.7, 4, 8]} />;
-  }, [styleKey, stylePosition, strandRadius, strandHeight]);
-
-  return (
-    <Instances limit={150} castShadow>
-      {geometry}
-      <meshStandardMaterial color={color} roughness={0.85} metalness={0.05} />
-      {transforms.map((t, i) => (
-        <Instance
-          key={i}
-          position={t.position}
-          quaternion={t.quaternion}
-        />
-      ))}
-    </Instances>
-  );
-}
-
-/** Full 3D scene with head model and dynamic hair*/
-function ThreeDScene({ stylePosition, thicknessPosition, lengthPosition, densityPosition }) {
-  return (
-    <div
-      className="w-full h-full bg-gray-100 rounded-lg shadow-inner relative overflow-hidden"
-      style={{ touchAction: 'none' }}
-    >
-      <Canvas camera={{ fov: 50, position: [0, 2, 5] }}>
-        <color attach="background" args={['#E5E7EB']} />
-        <ambientLight intensity={0.8} color="#F5F0FF" />
-        <directionalLight position={[5, 10, 7.5]} intensity={0.8} />
-        <CameraFollowLight intensity={1} />
-        <OrbitControls
-          enableDamping
-          dampingFactor={0.15}
-          target={[0, 2, 0]}
-          maxPolarAngle={Math.PI / 2}
-          minPolarAngle={0.2}
-          minDistance={3}
-          maxDistance={6}
-        />
-        <Suspense fallback={
-          <Html center><p className="text-gray-800 text-lg">Loading...</p></Html>
-        }>
-          <HeadModel />
-          <HairStrands
-            stylePosition={stylePosition}
-            thicknessPosition={thicknessPosition}
-            lengthPosition={lengthPosition}
-            densityPosition={densityPosition}
-          />
-        </Suspense>
-      </Canvas>
-    </div>
-  );
-}
-
-
-// ============================================================
-// 7. UI COMPONENTS
+// UI COMPONENTS
 // ============================================================
 
-/** Tab-style selector for braid style options */
 function StyleSelector({ value, onChange, map }) {
   const options = Object.keys(map).map(key => ({ id: Number(key), label: map[key][0] }));
 
@@ -556,9 +323,7 @@ function StyleSelector({ value, onChange, map }) {
             key={opt.id}
             type="button"
             onClick={() => onChange(opt.id)}
-            className={`grow py-3 px-1.5 text-center font-medium text-xs rounded-md cursor-pointer transition-all duration-200 whitespace-nowrap hover:text-gray-800 ${value === opt.id
-              ? 'bg-white text-gray-800 shadow-md'
-              : 'text-gray-600 bg-transparent border-none'
+            className={`grow py-3 px-1.5 text-center font-medium text-xs rounded-md cursor-pointer transition-all duration-200 whitespace-nowrap hover:text-gray-800 ${value === opt.id ? 'bg-white text-gray-800 shadow-md' : 'text-gray-600 bg-transparent border-none'
               }`}
           >
             {opt.label}
@@ -569,7 +334,6 @@ function StyleSelector({ value, onChange, map }) {
   );
 }
 
-/** Labelled range slider with custom track, progress fill, and +/- buttons */
 function RangeSlider({ id, min, max, step, value, onChange, map, labelText, buttonLabels }) {
   const labels = Object.keys(map).map(k => map[Number(k)][0]);
   const percentage = ((value - min) / (max - min)) * 100;
@@ -586,12 +350,18 @@ function RangeSlider({ id, min, max, step, value, onChange, map, labelText, butt
         <span className="text-xl font-bold text-gray-400 ml-3">{map[value][0]}</span>
         {buttonLabels && (
           <div className="flex space-x-2">
-            <button type="button" onClick={decrement}
-              className="px-4 py-2 bg-white text-gray-800 border border-gray-300 rounded-lg shadow-md transition duration-150 cursor-pointer hover:bg-gray-100">
+            <button
+              type="button"
+              onClick={decrement}
+              className="px-4 py-2 bg-white text-gray-800 border border-gray-300 rounded-lg shadow-md transition duration-150 cursor-pointer hover:bg-gray-100"
+            >
               {buttonLabels[0]}
             </button>
-            <button type="button" onClick={increment}
-              className="px-4 py-2 bg-white text-gray-800 border border-gray-300 rounded-lg shadow-md transition duration-150 cursor-pointer hover:bg-gray-100">
+            <button
+              type="button"
+              onClick={increment}
+              className="px-4 py-2 bg-white text-gray-800 border border-gray-300 rounded-lg shadow-md transition duration-150 cursor-pointer hover:bg-gray-100"
+            >
               {buttonLabels[1]}
             </button>
           </div>
@@ -605,8 +375,14 @@ function RangeSlider({ id, min, max, step, value, onChange, map, labelText, butt
           style={{ width: `${percentage}%` }}
         />
         <input
-          type="range" id={id} min={min} max={max} step={step} value={value}
-          onChange={onChange} required
+          type="range"
+          id={id}
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          onChange={onChange}
+          required
           className="absolute appearance-none w-full h-8 bg-transparent cursor-grab z-10
             [&::-webkit-slider-runnable-track]:h-0 [&::-moz-range-track]:h-0
             [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-5
@@ -629,56 +405,18 @@ function RangeSlider({ id, min, max, step, value, onChange, map, labelText, butt
   );
 }
 
-/** Loading skeleton placeholder */
-function Skeleton({ className = 'h-12 w-full', count = 1 }) {
-  return (
-    <>
-      {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className={`${className} bg-gray-300 rounded-lg animate-pulse mb-4`} />
-      ))}
-    </>
-  );
-}
-
-
 // ============================================================
-// 8. CALCULATION LOGIC
+// APP CONTENT
 // ============================================================
 
-function calculatePacks(stylePosition, thicknessPosition, lengthPosition, densityPosition) {
-  const style = styleMap[stylePosition][1];
-  const thickness = thicknessMap[thicknessPosition][1];
-  const length = lengthMap[lengthPosition][1];
-  const density = densityMap[densityPosition][1];
-  return ((style + thickness + density) * length) * 0.95;
-}
+function AppContent() {
+  const store = useHairStore();
+  const stylePos = store.stylePos;
+  const thicknessPos = store.thicknessPos;
+  const lengthPos = store.lengthPos;
+  const densityPos = store.densityPos;
 
-
-// ============================================================
-// 9. MAIN APP CONTENT
-// ============================================================
-
-function AppContent({ pendingPreset, clearPendingPreset }) {
-  const [stylePosition, setStylePosition] = useState(2);
-  const [thicknessPosition, setThicknessPosition] = useState(4);
-  const [lengthPosition, setLengthPosition] = useState(3);
-  const [densityPosition, setDensityPosition] = useState(4);
-  const [packsResult, setPacksResult] = useState(0);
-
-  // Apply preset values when one is selected from the gallery
-  useEffect(() => {
-    if (!pendingPreset) return;
-    const { stylePos, thicknessPos, lengthPos, densityPos } = pendingPreset;
-    setStylePosition(stylePos);
-    setThicknessPosition(thicknessPos);
-    setLengthPosition(lengthPos);
-    setDensityPosition(densityPos);
-    clearPendingPreset();
-  }, [pendingPreset, clearPendingPreset]);
-
-  useEffect(() => {
-    setPacksResult(calculatePacks(stylePosition, thicknessPosition, lengthPosition, densityPosition));
-  }, [stylePosition, thicknessPosition, lengthPosition, densityPosition]);
+  const packsResult = store.calculatePacks();
 
   const handleSlider = (setter) => (e) => setter(Number(e.target.value));
 
@@ -686,34 +424,47 @@ function AppContent({ pendingPreset, clearPendingPreset }) {
     <div className="flex flex-col lg:flex-row p-8">
       {/* 3D Viewport */}
       <div className="w-full mb-8 lg:w-1/2 lg:h-[700px] lg:mr-8 lg:mb-0 relative">
-        <ThreeDScene
-          stylePosition={stylePosition}
-          thicknessPosition={thicknessPosition}
-          lengthPosition={lengthPosition}
-          densityPosition={densityPosition}
-        />
+        <Experience />
       </div>
 
       {/* Controls panel */}
       <div className="w-full lg:w-1/2 p-6 flex flex-col space-y-4">
         <h2 className="text-2xl font-bold text-gray-800 mb-6">Hair Customization</h2>
 
-        <StyleSelector value={stylePosition} onChange={setStylePosition} map={styleMap} />
+        <StyleSelector value={stylePos} onChange={store.setStylePos} map={store.styleMap} />
 
         <RangeSlider
-          id="thickness" min={1} max={6} step={1} value={thicknessPosition}
-          onChange={handleSlider(setThicknessPosition)}
-          map={thicknessMap} labelText="Braid thickness" buttonLabels={['Smaller', 'Larger']}
+          id="thickness"
+          min={1}
+          max={6}
+          step={1}
+          value={thicknessPos}
+          onChange={handleSlider(store.setThicknessPos)}
+          map={store.thicknessMap}
+          labelText="Braid thickness"
+          buttonLabels={['Smaller', 'Larger']}
         />
         <RangeSlider
-          id="length" min={1} max={6} step={1} value={lengthPosition}
-          onChange={handleSlider(setLengthPosition)}
-          map={lengthMap} labelText="Braid length" buttonLabels={['Shorter', 'Longer']}
+          id="length"
+          min={1}
+          max={6}
+          step={1}
+          value={lengthPos}
+          onChange={handleSlider(store.setLengthPos)}
+          map={store.lengthMap}
+          labelText="Braid length"
+          buttonLabels={['Shorter', 'Longer']}
         />
         <RangeSlider
-          id="density" min={1} max={7} step={1} value={densityPosition}
-          onChange={handleSlider(setDensityPosition)}
-          map={densityMap} labelText="Braid density" buttonLabels={['Lower', 'Higher']}
+          id="density"
+          min={1}
+          max={7}
+          step={1}
+          value={densityPos}
+          onChange={handleSlider(store.setDensityPos)}
+          map={store.densityMap}
+          labelText="Braid density"
+          buttonLabels={['Lower', 'Higher']}
         />
 
         <div className="pt-4 border-t border-gray-200 text-gray-700">
@@ -726,22 +477,19 @@ function AppContent({ pendingPreset, clearPendingPreset }) {
   );
 }
 
-
 // ============================================================
-// 10. ROOT APP
+// ROOT APP
 // ============================================================
 
 export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activePresetId, setActivePresetId] = useState(null);
-  const [pendingPreset, setPendingPreset] = useState(null);
+  const store = useHairStore();
 
   const handleSelectPreset = (preset, parsed) => {
     setActivePresetId(preset.id);
-    setPendingPreset(parsed);
+    store.applyPreset(parsed);
   };
-
-  const clearPendingPreset = () => setPendingPreset(null);
 
   return (
     <>
@@ -749,10 +497,8 @@ export default function App() {
 
       <div className="bg-gray-100 min-h-screen p-4 flex justify-center items-start font-sans">
         <div className="bg-white max-w-7xl w-full rounded-xl shadow-2xl overflow-hidden my-4">
-
           {/* Header */}
           <header className="p-4 border-b border-gray-200 flex items-center justify-between">
-            {/* Burger button — top left */}
             <button
               onClick={() => setMenuOpen(true)}
               className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors group"
@@ -764,7 +510,6 @@ export default function App() {
               <span className="text-sm font-medium hidden sm:inline">Menu</span>
             </button>
 
-            {/* Brand — centred */}
             <div className="text-center">
               <span className="text-gray-800 font-bold text-xl leading-tight tracking-tight">
                 Cinna's PAH
@@ -775,53 +520,44 @@ export default function App() {
               </span>
             </div>
 
-            {/* Spacer to balance the header */}
             <div className="w-20" />
           </header>
 
           {/* Preset gallery strip */}
-          <PresetGallery
-            onSelectPreset={handleSelectPreset}
-            activePresetId={activePresetId}
-          />
+          <PresetGallery onSelectPreset={handleSelectPreset} activePresetId={activePresetId} />
 
           {/* Main content */}
-          <Suspense fallback={
-            <div className="flex flex-col lg:flex-row p-8 gap-8">
-              <Skeleton className="h-[700px] w-full lg:w-1/2" />
-              <div className="w-full lg:w-1/2 space-y-4">
-                <Skeleton className="h-8 w-3/4" />
-                <Skeleton className="h-16 w-full" />
-                <Skeleton className="h-28 w-full" count={3} />
-              </div>
-            </div>
-          }>
-            <AppContent
-              pendingPreset={pendingPreset}
-              clearPendingPreset={clearPendingPreset}
-            />
-          </Suspense>
+          <AppContent />
 
           {/* Footer */}
           <footer className="p-4 border-t border-gray-200 bg-gray-50 text-center text-sm text-gray-500 flex justify-center space-x-6">
             {[
               ['About this project', () => setMenuOpen(true)],
-              ['Github Repository', 'https://github.com/OCE-Cinna/Cinna-s-Afro-Hair-Visualizer-2026'],
+              ['Github Repository', 'https://github.com/OCE-Cinna/hair-calculator-app'],
               ['Contact', null],
-              ['Fair Use Agreement', {
-                mouseover: () => alert('This project is for educational purposes only. All images and data are based on publicly available information and personal research. Please do not use the pack estimates for commercial purposes or as a substitute for consulting with a professional stylist.\n\nCopyright 2026 Cinna. All rights reserved.\n\nPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.')
-              }],
             ].map(([label, action], i, arr) => (
               <React.Fragment key={label}>
-                {action
-                  ? <button onClick={action} className="text-gray-500 hover:text-gray-700 transition duration-150">{label}</button>
-                  : <a href="#" className="text-gray-500 hover:text-gray-700 transition duration-150">{label}</a>
-                }
+                {typeof action === 'string' ? (
+                  <a
+                    href={action}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-gray-500 hover:text-gray-700 transition duration-150"
+                  >
+                    {label}
+                  </a>
+                ) : (
+                  <button
+                    onClick={action}
+                    className="text-gray-500 hover:text-gray-700 transition duration-150"
+                  >
+                    {label}
+                  </button>
+                )}
                 {i < arr.length - 1 && <span className="text-gray-300">|</span>}
               </React.Fragment>
             ))}
           </footer>
-
         </div>
       </div>
     </>
