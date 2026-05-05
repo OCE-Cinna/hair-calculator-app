@@ -1,6 +1,6 @@
-import React, { useRef, useMemo, useEffect, useCallback } from 'react';
+import React, { useRef, useMemo, useEffect, useState } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import { OrbitControls, Instances, Instance } from '@react-three/drei';
+import { OrbitControls, Instances, Instance, useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { useHairStore } from '../store/hairStore';
 import { HeadModel } from './HeadModel';
@@ -14,37 +14,19 @@ const STYLE_COLORS = {
 };
 
 /**
- * Fibonacci lattice algorithm for even sphere distribution
- */
-function fibonacciSpherePoints(count, radius, yOffset = 0, yScale = 1.2) {
-    const points = [];
-    const goldenAngle = Math.PI * (3 - Math.sqrt(5));
-
-    for (let i = 0; i < count; i++) {
-        const y = 1 - (i / (count - 1)) * 2;
-        const r = Math.sqrt(1 - y * y);
-        const theta = goldenAngle * i;
-        points.push(
-            new THREE.Vector3(
-                Math.cos(theta) * r * radius,
-                y * radius * yScale + yOffset,
-                Math.sin(theta) * r * radius
-            )
-        );
-    }
-
-    return points;
-}
-
-/**
  * Raycasting-based hair placement with UV texture masking
  * Shoots rays from a grid above the head downward
  * Samples scalp texture at ray-hit UV coordinates
  * Only spawns hair at WHITE pixels (skips BLACK pixels)
  */
 function useRaycastHairPlacement(headMeshRef, textureRef, stylePos, densityPos) {
-    return useMemo(() => {
-        if (!headMeshRef.current || !textureRef.current) return [];
+    const [hairPoints, setHairPoints] = useState([]);
+
+    useEffect(() => {
+        if (!headMeshRef.current || !textureRef.current) {
+            setHairPoints([]);
+            return;
+        }
 
         const targetCount = DENSITY_COUNTS[densityPos] ?? 42;
         const raycaster = new THREE.Raycaster();
@@ -121,26 +103,38 @@ function useRaycastHairPlacement(headMeshRef, textureRef, stylePos, densityPos) 
         });
 
         // Limit to target count
-        return symmetricPoints.slice(0, targetCount);
+        setHairPoints(symmetricPoints.slice(0, targetCount));
     }, [headMeshRef, textureRef, stylePos, densityPos]);
+
+    return hairPoints;
 }
 
 /**
- * Hair strands renderer using Instances (performance optimized)
+ * Hair strands renderer using InstancedMesh with GLTF models
+ * Falls back to simple cylinders if models fail to load
  */
-function HairStrands({ stylePos, thicknessPos, lengthPos, densityPos, hairPlacementPoints }) {
-    const thicknessMod = useHairStore((state) => state.thicknessMap[thicknessPos][1]);
-    const lengthMod = useHairStore((state) => state.lengthMap[lengthPos][1]);
-    const color = STYLE_COLORS[stylePos];
+function HairStrands({ lengthPos, hairPlacementPoints }) {
+    let braidSegment = null;
+    let braidEnd = null;
 
-    const locsMultiplier = stylePos === 4 ? 1.3 : 1.0;
-    const strandRadius = 0.04 * thicknessMod * locsMultiplier;
-    const strandHeight = 0.3 * lengthMod;
+    try {
+        const segmentGLTF = useGLTF('/models/boxbraid.glb');
+        braidSegment = segmentGLTF.scene;
+        const endGLTF = useGLTF('/models/boxbraidend.glb');
+        braidEnd = endGLTF.scene;
+    } catch (error) {
+        console.warn('Failed to load braid models, using fallback cylinders:', error);
+    }
 
-    // Transform placement points into Instance transforms
+    const instancedMeshRef = useRef();
+    const endInstancedMeshRef = useRef();
+
+    // Number of segments based on length
+    const numSegments = lengthPos; // lengthPos ranges from 1 to 6
+
     const transforms = useMemo(() => {
         return hairPlacementPoints.map((point) => {
-            // Orient strand along surface normal (outward from head)
+            // Orient braid along surface normal (outward from head)
             const quaternion = new THREE.Quaternion().setFromUnitVectors(
                 new THREE.Vector3(0, 1, 0),
                 point.normal
@@ -149,37 +143,64 @@ function HairStrands({ stylePos, thicknessPos, lengthPos, densityPos, hairPlacem
         });
     }, [hairPlacementPoints]);
 
-    // Select geometry based on style
-    const geometry = useMemo(() => {
-        switch (stylePos) {
-            case 2: // Box Braids
-                return <boxGeometry args={[strandRadius * 1.4, strandHeight, strandRadius * 1.4]} />;
-            case 3: // Twists
-                return <cylinderGeometry args={[strandRadius, strandRadius, strandHeight, 6]} />;
-            case 4: // Locs (tapered)
-                const topRadius = strandRadius * 0.7;
-                return <cylinderGeometry args={[topRadius, strandRadius, strandHeight, 6]} />;
-            case 1: // Knotless Braids (default/capsule)
-            default:
-                return <capsuleGeometry args={[strandRadius, strandHeight * 0.7, 4, 8]} />;
-        }
-    }, [stylePos, strandRadius, strandHeight]);
+    useEffect(() => {
+        if (!instancedMeshRef.current || !endInstancedMeshRef.current || transforms.length === 0) return;
+
+        const segmentMesh = instancedMeshRef.current;
+        const endMesh = endInstancedMeshRef.current;
+
+        // Set instance count
+        segmentMesh.count = transforms.length * numSegments;
+        endMesh.count = transforms.length;
+
+        // Set transforms for segments
+        transforms.forEach((transform, braidIndex) => {
+            for (let segmentIndex = 0; segmentIndex < numSegments; segmentIndex++) {
+                const instanceIndex = braidIndex * numSegments + segmentIndex;
+                const matrix = new THREE.Matrix4();
+                const position = transform.position.clone();
+                // Stack segments vertically
+                position.add(new THREE.Vector3(0, segmentIndex * 0.1, 0)); // Adjust height as needed
+                matrix.setPosition(position);
+                matrix.multiply(new THREE.Matrix4().makeRotationFromQuaternion(transform.quaternion));
+                segmentMesh.setMatrixAt(instanceIndex, matrix);
+            }
+
+            // Set transform for end cap
+            const endMatrix = new THREE.Matrix4();
+            const endPosition = transform.position.clone();
+            endPosition.add(new THREE.Vector3(0, numSegments * 0.1, 0)); // Position at the top
+            endMatrix.setPosition(endPosition);
+            endMatrix.multiply(new THREE.Matrix4().makeRotationFromQuaternion(transform.quaternion));
+            endMesh.setMatrixAt(braidIndex, endMatrix);
+        });
+
+        segmentMesh.instanceMatrix.needsUpdate = true;
+        endMesh.instanceMatrix.needsUpdate = true;
+    }, [transforms, numSegments]);
 
     if (transforms.length === 0) return null;
 
-    return (
-        <Instances limit={150}>
-            {geometry}
-            <meshStandardMaterial color={color} roughness={0.85} metalness={0.05} />
-            {transforms.map((t, i) => (
-                <Instance
-                    key={i}
-                    position={t.position}
-                    quaternion={t.quaternion}
-                />
-            ))}
-        </Instances>
-    );
+    if (braidSegment && braidEnd) {
+        return (
+            <group>
+                <instancedMesh ref={instancedMeshRef} args={[braidSegment.children[0].geometry, braidSegment.children[0].material, transforms.length * numSegments]} />
+                <instancedMesh ref={endInstancedMeshRef} args={[braidEnd.children[0].geometry, braidEnd.children[0].material, transforms.length]} />
+            </group>
+        );
+    } else {
+        // Fallback to cylinders
+        return (
+            <group>
+                {transforms.map((transform, i) => (
+                    <mesh key={i} position={transform.position} quaternion={transform.quaternion}>
+                        <cylinderGeometry args={[0.02, 0.02, lengthPos * 0.1, 8]} />
+                        <meshStandardMaterial color="#2c1810" />
+                    </mesh>
+                ))}
+            </group>
+        );
+    }
 }
 
 /**
@@ -208,14 +229,13 @@ function ThreeDSceneContent() {
 
     // Subscribe to Zustand store
     const stylePos = useHairStore((state) => state.stylePos);
-    const thicknessPos = useHairStore((state) => state.thicknessPos);
     const lengthPos = useHairStore((state) => state.lengthPos);
     const densityPos = useHairStore((state) => state.densityPos);
 
     // Load scalp texture for UV masking
     useEffect(() => {
         const textureLoader = new THREE.TextureLoader();
-        textureLoader.load('/scalp_mask.jpg', (texture) => {
+        textureLoader.load('/scalp_mask.jpeg', (texture) => {
             textureRef.current = texture;
         });
     }, []);
@@ -247,10 +267,7 @@ function ThreeDSceneContent() {
 
             <HeadModel ref={headGroupRef} />
             <HairStrands
-                stylePos={stylePos}
-                thicknessPos={thicknessPos}
                 lengthPos={lengthPos}
-                densityPos={densityPos}
                 hairPlacementPoints={hairPlacementPoints}
             />
         </>
@@ -272,4 +289,12 @@ export function Experience() {
             </Canvas>
         </div>
     );
+}
+
+// Preload GLTF models (only if they exist)
+try {
+    useGLTF.preload('/models/boxbraid.glb');
+    useGLTF.preload('/models/boxbraidend.glb');
+} catch (error) {
+    console.warn('Braid model preload failed:', error);
 }

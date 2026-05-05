@@ -1,16 +1,79 @@
-# React + Vite
+# Cinna's PAH - Protective Afro-Hairstyle Visualizer & Calculator
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+This is a Semester 3 HBO-ICT student project at Fontys University of Applied Sciences. The project was inspired by a realization in Semester 1 that technology can simplify "mundane" tasks like planning Afro-textured hairstyles, making them more accessible and efficient.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **React 19** - Modern React with latest features
+- **Three.js (R3F)** - React Three Fiber for 3D rendering
+- **Tailwind CSS** - Utility-first CSS framework
+- **Blender** - 3D modeling for custom assets
 
-## React Compiler
+## Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Real-time 3D head visualization with interactive rotation
+- Procedural hair placement using raycasting and UV texture masking
+- Slider-based parameter adjustment for style, thickness, length, and density
+- Preset gallery for quick style loading
+- Hair pack estimation calculator
+- Responsive design with mobile support
 
-## Expanding the ESLint configuration
+## Getting Started
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Prerequisites
+
+- Node.js (v18 or higher)
+- npm or yarn
+
+### Installation
+
+```bash
+npm install
+```
+
+### Adding 3D Models
+
+Place the following files in the `public/models/` directory:
+- `custombust.glb` - The 3D head model
+- `boxbraid.glb` - Braid segment model
+- `boxbraidend.glb` - Braid end cap model
+
+And ensure `public/scalp_mask.jpeg` exists for UV masking.
+
+If models are missing, the app will use fallback geometries (sphere for head, cylinders for braids).
+
+### Development
+
+```bash
+npm run dev
+```
+
+### Build
+
+```bash
+npm run build
+```
+
+### Preview
+
+```bash
+npm run preview
+```
+
+## Project Structure
+
+```
+src/
+├── components/
+│   ├── Experience.jsx      # Main 3D scene
+│   ├── HeadModel.jsx       # 3D head model component
+│   ├── Sliders.jsx         # Custom slider components
+│   └── ThreeDCanvas.jsx    # Three.js canvas wrapper
+├── store/
+│   └── hairStore.js        # Zustand state management
+└── App.jsx                 # Main application component
+```
+
+## License
+
+MIT License

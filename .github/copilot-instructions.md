@@ -47,19 +47,16 @@ User Input (Sliders) → Calculation Formula → Hair Pack Estimate
    - Uses Tailwind for styling, accepts a `map` prop for label data
    - Emits `onChange` events with slider position
 
-3. **ThreeDCanvas.jsx** (~183 lines)
-   - Vanilla Three.js (not R3F) for 3D head visualization
-   - Features:
-     - Interactive head rotation via mouse/touch dragging
-     - Pointer capture for smooth tracking outside canvas
-     - Lights: ambient + directional
-     - Simple sphere geometry scaled to head shape
-   - No automatic animation; responds to user interaction
+3. **Experience.jsx**
+   - Main 3D scene component using React Three Fiber
+   - Handles raycasting-based hair placement with UV texture masking
+   - Manages InstancedMesh for braid rendering
+   - Integrates head model and hair visualization
 
-4. **Bust.jsx**
-   - Auto-generated gltfjsx component for displaying a detailed 3D bust model
-   - Preloads `/bust.gltf` with multiple materials and lights
-   - Currently exported but may not be actively rendered in current version
+4. **HeadModel.jsx**
+   - Loads and renders custombust.glb as the base head mesh
+   - Applies scalp_mask.jpeg as texture for hair placement masking
+   - Provides mesh reference for raycasting operations
 
 ### Key Patterns & Conventions
 
@@ -79,6 +76,13 @@ User Input (Sliders) → Calculation Formula → Hair Pack Estimate
 - **`setPointerCapture` / `releasePointerCapture`** for continuous drag tracking
 - **X rotation clamped** to ±90° to prevent inversion
 - Rotation speed: `0.005` (configurable sensitivity)
+
+#### Hair Placement & Instancing
+- **Raycasting**: Rays shot from grid above head, intersect with scalp mesh
+- **UV Sampling**: Samples scalp_mask.png at hit coordinates
+- **Masking**: White pixels spawn braids, black pixels skip
+- **InstancedMesh**: Efficient rendering of multiple braid instances
+- **Braid Construction**: Stacks boxbraid.glb segments + boxbraidend.glb cap
 
 ## Developer Workflows
 
@@ -134,8 +138,12 @@ npm run preview      # Preview production build locally
 |------|---------|
 | [src/App.jsx](../src/App.jsx) | Main app: state, maps, presets, UI layout, calculation logic |
 | [src/components/Sliders.jsx](../src/components/Sliders.jsx) | Custom range input with labeled ticks |
-| [src/components/ThreeDCanvas.jsx](../src/components/ThreeDCanvas.jsx) | Three.js head visualization + drag interaction |
-| [src/model/Bust.jsx](../src/model/Bust.jsx) | Detailed GLTF bust model component (generated) |
+| [src/components/Experience.jsx](../src/components/Experience.jsx) | Main 3D scene with raycasting and InstancedMesh |
+| [src/components/HeadModel.jsx](../src/components/HeadModel.jsx) | GLTF head model loader with texture |
+| [public/models/custombust.glb](../public/models/custombust.glb) | Custom 3D head model |
+| [public/models/boxbraid.glb](../public/models/boxbraid.glb) | Braid segment model |
+| [public/models/boxbraidend.glb](../public/models/boxbraidend.glb) | Braid end cap model |
+| [public/scalp_mask.jpeg](../public/scalp_mask.jpeg) | UV texture mask for hair placement |
 | [vite.config.js](../vite.config.js) | Vite + Tailwind + React plugin configuration |
 
 ## Testing & Debugging
@@ -150,3 +158,4 @@ npm run preview      # Preview production build locally
 - **User presets**: Allow saving custom slider configurations (localStorage or backend)
 - **R3F migration**: Refactor ThreeDCanvas.jsx to use React 3 Fiber for better React integration
 - **Mobile optimizations**: Touch events work; consider gesture recognition for enhanced UX
+- **Model optimization**: Implement LOD (Level of Detail) for braid segments based on distance
