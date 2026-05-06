@@ -534,7 +534,7 @@ export default function App() {
             {[
               ['About this project', () => setMenuOpen(true)],
               ['Github Repository', 'https://github.com/OCE-Cinna/hair-calculator-app'],
-              ['Contact', null],
+              // ['Contact', null],
             ].map(([label, action], i, arr) => (
               <React.Fragment key={label}>
                 {typeof action === 'string' ? (

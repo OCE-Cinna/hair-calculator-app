@@ -258,11 +258,12 @@ function ThreeDSceneContent() {
             <OrbitControls
                 enableDamping
                 dampingFactor={0.15}
-                target={[0, 2, 0]}
+                target={[0, 1, 0]}
                 maxPolarAngle={Math.PI / 2}
                 minPolarAngle={0.2}
-                minDistance={3}
-                maxDistance={6}
+                minDistance={5}
+                maxDistance={10}
+
             />
 
             <HeadModel ref={headGroupRef} />
@@ -284,7 +285,7 @@ export function Experience() {
             className="w-full h-full bg-gray-100 rounded-lg shadow-inner relative overflow-hidden"
             style={{ touchAction: 'none' }}
         >
-            <Canvas camera={{ fov: 50, position: [0, 2, 5] }}>
+            <Canvas camera={{ fov: 40, position: [0, 0, 10] }}>
                 <ThreeDSceneContent />
             </Canvas>
         </div>

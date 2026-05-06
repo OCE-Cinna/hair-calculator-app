@@ -24,7 +24,7 @@ const ThreeDCanvas = () => {
             // 2. Camera
             const aspectRatio = currentMount.clientWidth / currentMount.clientHeight;
             camera = new THREE.PerspectiveCamera(50, aspectRatio, 0.1, 1000); // Narrowed FOV
-            camera.position.z = 5;
+            camera.position.z = 0;
 
             // 3. Renderer
             renderer = new THREE.WebGLRenderer({ antialias: true });
