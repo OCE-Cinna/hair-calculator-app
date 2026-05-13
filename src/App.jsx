@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Menu, X, Sparkles, Github, Info } from 'lucide-react';
 import './App.css';
 import { useHairStore } from './store/hairStore';
@@ -290,7 +290,7 @@ function AppContent() {
         <RangeSlider
           id="thickness"
           min={1}
-          max={7}
+          max={Object.keys(THICKNESS_MAP).length}
           step={1}
           value={thicknessPos}
           onChange={handleSlider(setThicknessPos)}
@@ -301,7 +301,7 @@ function AppContent() {
         <RangeSlider
           id="length"
           min={1}
-          max={7}
+          max={Object.keys(LENGTH_MAP).length}
           step={1}
           value={lengthPos}
           onChange={handleSlider(setLengthPos)}
@@ -312,7 +312,7 @@ function AppContent() {
         <RangeSlider
           id="density"
           min={1}
-          max={7}
+          max={Object.keys(DENSITY_MAP).length}
           step={1}
           value={densityPos}
           onChange={handleSlider(setDensityPos)}
