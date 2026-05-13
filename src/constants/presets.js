@@ -29,7 +29,7 @@ export const parsePresetFilename = (filename) => {
         if (STYLE_ALIASES[part] !== undefined) stylePos = STYLE_ALIASES[part];
     });
 
-    const densityDefaults = { 1: 6, 2: 5, 3: 4, 4: 4, 5: 3, 6: 2 };
+    const densityDefaults = { 1: 5, 2: 4, 3: 3, 4: 3, 5: 2, 6: 1 };
     const densityPos = densityDefaults[thicknessPos] || 4;
 
     return {
