@@ -10,7 +10,7 @@ export const HeadModel = forwardRef((props, ref) => {
     const bustPath = assets.custombust || "/models/custombust.glb";
     const maskPath = assets.scalp_mask || "/textures/scalp_mask.jpeg";
 
-    const { scene } = useGLTF(bustPath);
+    const { scene } = useGLTF(bustPath, 'https://www.gstatic.com/draco/versioned/decoders/1.5.5/');
     const mask = useTexture(maskPath);
 
     // Apply the scalp mask to the bust material

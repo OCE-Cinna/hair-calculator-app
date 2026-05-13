@@ -189,9 +189,10 @@ function HairStrands({ stylePos, lengthPos, thicknessPos, hairPlacementPoints })
     const instancedMeshRef = useRef();
     const endInstancedMeshRef = useRef();
 
-    // useGLTF calls must be top-level and will be caught by ExperienceErrorBoundary if they fail
-    const segmentGLTF = useGLTF(braidPath);
-    const endGLTF = useGLTF(braidEndPath);
+    // Enable Draco decoding. This allows the user to upload DRACO-compressed GLB files 
+    // to significantly reduce download times and memory overhead.
+    const segmentGLTF = useGLTF(braidPath, 'https://www.gstatic.com/draco/versioned/decoders/1.5.5/');
+    const endGLTF = useGLTF(braidEndPath, 'https://www.gstatic.com/draco/versioned/decoders/1.5.5/');
 
     const braidSegment = segmentGLTF?.scene;
     const braidEnd = endGLTF?.scene;
