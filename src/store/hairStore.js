@@ -43,6 +43,7 @@ export const useHairStore = create(
                 4: ['Medium', 1.3],
                 5: ['Large', 1.6],
                 6: ['Jumbo', 2.0],
+                7: ['Mega Jumbo', 2.4],
 
             },
 
@@ -53,15 +54,17 @@ export const useHairStore = create(
                 4: ['Mid-back', 1.4],
                 5: ['Waist', 1.7],
                 6: ['Hip', 2.0],
+                7: ['Calf', 2.3],
             },
 
             DENSITY_MAP: {
                 1: ['Very Low', 0.6],
                 2: ['Low', 0.8],
+                3: ['Medium-Low', 0.9],
                 4: ['Medium', 1.0],
                 5: ['Full', 1.2],
                 6: ['Very Full', 1.4],
-
+                7: ['Maximum', 1.6],
             },
 
             // --- Actions ---
