@@ -20,7 +20,7 @@ export const HeadModel = forwardRef((props, ref) => {
                 child.material.map = mask;
             } else {
                 child.material.map = null;
-                child.material.color = new THREE.Color("#956a4d"); // Natural skin tone fallback
+                child.material.color = new THREE.Color("#774f34"); // Natural skin tone fallback
                 child.material.roughness = 0.6;
             }
             child.material.needsUpdate = true;

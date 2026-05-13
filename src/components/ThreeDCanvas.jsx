@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-// === 1. THREE.JS COMPONENT (UPDATED FOR INTERACTION) ===
+// === 1. THREE.JS COMPONENT ===
 const ThreeDCanvas = () => {
     const mountRef = useRef(null);
     const headRef = useRef(null); // Reference to the 3D head object

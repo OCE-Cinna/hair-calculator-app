@@ -406,15 +406,23 @@ function CameraFollowLight({ intensity = 1 }) {
  */
 function ThreeDSceneContent() {
     const headGroupRef = useRef(null);
-    const { assets, debugRaycast, stylePos, lengthPos, densityPos } = useHairStore();
-    const thicknessPos = useHairStore(state => state.thicknessPos); // Get thicknessPos from store
-    const maskPath = debugRaycast ? (assets.uv_reference || "/textures/uv_reference.png") : (assets.scalp_mask || "/textures/scalp_mask.jpeg"); // This line was duplicated, removed the extra one.
+    const { assets, debugRaycast, stylePos, lengthPos, densityPos, theme } = useHairStore();
+    const thicknessPos = useHairStore(state => state.thicknessPos);
+    const maskPath = debugRaycast ? (assets.uv_reference || "/textures/uv_reference.png") : (assets.scalp_mask || "/textures/scalp_mask.jpeg");
     const mask = useTexture(maskPath);
     const hairPlacementPoints = useRaycastHairPlacement(headGroupRef, mask, stylePos, densityPos, assets.custombust);
 
+    // Dynamic background color from CSS variable
+    const [bgColor, setBgColor] = useState('#f3f4f6');
+    useEffect(() => {
+        const style = getComputedStyle(document.documentElement);
+        const color = style.getPropertyValue('--color-canvas-bg').trim();
+        if (color) setBgColor(color);
+    }, [theme]);
+
     return (
         <>
-            <color attach="background" args={['#f3f4f6']} />
+            <color attach="background" args={[bgColor]} />
             <ambientLight intensity={0.5} color="#ffffff" />
             {/* Key Light */}
             <directionalLight position={[4, 6, 4]} intensity={1.5} castShadow />
@@ -436,7 +444,7 @@ function ThreeDSceneContent() {
  */
 export function Experience() {
     return (
-        <div className="w-full h-full bg-gray-100 rounded-lg shadow-inner relative overflow-hidden" style={{ touchAction: 'none' }}>
+        <div className="w-full h-full relative overflow-hidden" style={{ touchAction: 'none' }}>
             <ExperienceErrorBoundary>
                 <Canvas camera={{ fov: 50, position: [0, 2, 10] }}>
                     <Suspense fallback={null}>

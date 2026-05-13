@@ -1,1 +1,121 @@
 @import "tailwindcss";
+
+@layer base {
+  :root {
+    /* Main Layout */
+    --color-app-main: #FDFBF7;
+    --color-brand: #FF6B00;
+    
+    /* Text Colors */
+    --color-text-base: #111827; /* gray-900 */
+    --color-text-muted: #4B5563; /* gray-600 */
+    --color-text-faint: #6B7280; /* gray-500 */
+    --color-text-faintest: #9CA3AF; /* gray-400 */
+    --color-text-highlight: #1F2937; /* gray-800 */
+    
+    /* Backgrounds */
+    --color-glass: rgba(255, 255, 255, 0.4);
+    --color-glass-menu: rgba(255, 255, 255, 0.95);
+    --color-glass-header: rgba(255, 255, 255, 0.4);
+    --color-glass-footer: rgba(255, 255, 255, 0.5);
+    --color-glass-panel: rgba(255, 255, 255, 0.6);
+    --color-glass-panel-muted: rgba(243, 244, 246, 0.5); /* gray-100/50 */
+    --color-glass-gallery: rgba(255, 255, 255, 0.2);
+    --color-glass-selector: rgba(255, 255, 255, 0.5);
+    --color-glass-hover: rgba(255, 255, 255, 0.5);
+    --color-glass-input: rgba(249, 250, 251, 1); /* gray-50 */
+    
+    /* Borders */
+    --color-border-glass: rgba(255, 255, 255, 0.4);
+    --color-border-glass-strong: rgba(255, 255, 255, 0.6);
+    --color-border-divider: rgba(209, 213, 219, 1); /* gray-300 */
+    --color-border-divider-faint: rgba(229, 231, 235, 1); /* gray-200 */
+    
+    /* Effects */
+    --shadow-glass: 0 20px 50px -12px rgba(0,0,0,0.08);
+    --shadow-panel: -5px 0 20px rgba(0,0,0,0.03);
+    --color-ring-offset: #FFFFFF;
+    --color-canvas-bg: #FFFFFF;
+    --shadow-brand-subtle: 0 4px 12px rgba(255, 107, 0, 0.2);
+
+    /* Background Orbs */
+    --orb-blend: multiply;
+    --orb-opacity-low: 0.1;
+    --orb-opacity-mid: 0.15;
+  }
+
+  .dark {
+    /* Main Layout */
+    --color-app-main: #1A100C;
+    --color-brand: #FF6B00;
+    
+    /* Text Colors */
+    --color-text-base: #FFFFFF;
+    --color-text-muted: rgba(255, 255, 255, 0.7); /* white/70 */
+    --color-text-faint: rgba(255, 255, 255, 0.5); /* white/50 */
+    --color-text-faintest: rgba(255, 255, 255, 0.4); /* white/40 */
+    --color-text-highlight: rgba(255, 255, 255, 0.9); /* white/90 */
+    
+    /* Backgrounds */
+    --color-glass: rgba(0, 0, 0, 0.4);
+    --color-glass-menu: rgba(26, 16, 12, 0.95); /* #1A100C/95 */
+    --color-glass-header: rgba(255, 255, 255, 0.05); /* white/5 */
+    --color-glass-footer: rgba(0, 0, 0, 0.6);
+    --color-glass-panel: rgba(255, 255, 255, 0.05);
+    --color-glass-panel-muted: rgba(0, 0, 0, 0.2);
+    --color-glass-gallery: rgba(255, 255, 255, 0.05);
+    --color-glass-selector: rgba(0, 0, 0, 0.4);
+    --color-glass-hover: rgba(255, 255, 255, 0.1); /* white/10 */
+    --color-glass-input: rgba(0, 0, 0, 0.4);
+    
+    /* Borders */
+    --color-border-glass: rgba(255, 255, 255, 0.1); /* white/10 */
+    --color-border-glass-strong: rgba(255, 255, 255, 0.1); /* white/10 */
+    --color-border-divider: rgba(255, 255, 255, 0.1); /* white/10 */
+    --color-border-divider-faint: rgba(255, 255, 255, 0.05); /* white/5 */
+    
+    /* Effects */
+    --shadow-glass: 0 20px 50px -12px rgba(0,0,0,0.4);
+    --shadow-panel: -5px 0 20px rgba(0,0,0,0.15);
+    --color-ring-offset: rgba(0,0,0,0.5);
+    --color-canvas-bg: #F3F4F6; /* Light Grey */
+    --shadow-brand-subtle: 0 4px 12px rgba(255, 107, 0, 0.3);
+
+    /* Background Orbs */
+    --orb-blend: screen;
+    --orb-opacity-low: 0.2;
+    --orb-opacity-mid: 0.3;
+  }
+}
+
+@theme {
+  --color-app-main: var(--color-app-main);
+  --color-brand: var(--color-brand);
+  --color-text-base: var(--color-text-base);
+  --color-text-muted: var(--color-text-muted);
+  --color-text-faint: var(--color-text-faint);
+  --color-text-faintest: var(--color-text-faintest);
+  --color-text-highlight: var(--color-text-highlight);
+  --color-glass: var(--color-glass);
+  --color-glass-menu: var(--color-glass-menu);
+  --color-glass-header: var(--color-glass-header);
+  --color-glass-footer: var(--color-glass-footer);
+  --color-glass-panel: var(--color-glass-panel);
+  --color-glass-panel-muted: var(--color-glass-panel-muted);
+  --color-glass-gallery: var(--color-glass-gallery);
+  --color-glass-selector: var(--color-glass-selector);
+  --color-glass-hover: var(--color-glass-hover);
+  --color-glass-input: var(--color-glass-input);
+  --color-border-glass: var(--color-border-glass);
+  --color-border-glass-strong: var(--color-border-glass-strong);
+  --color-border-divider: var(--color-border-divider);
+  --color-border-divider-faint: var(--color-border-divider-faint);
+  --shadow-glass: var(--shadow-glass);
+  --shadow-panel: var(--shadow-panel);
+  --color-ring-offset: var(--color-ring-offset);
+  --color-canvas-bg: var(--color-canvas-bg);
+  --shadow-brand-subtle: var(--shadow-brand-subtle);
+  --mix-blend-orb: var(--orb-blend);
+  --opacity-orb-low: var(--orb-opacity-low);
+  --opacity-orb-mid: var(--orb-opacity-mid);
+}

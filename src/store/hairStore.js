@@ -14,6 +14,7 @@ export const useHairStore = create(
             lengthPos: 3,
             densityPos: 4,
             debugRaycast: false,
+            theme: 'system', // 'light', 'dark', or 'system'
             assets: {}, // Dynamic asset paths for custom models/textures
             customPresets: [], // Stores user-created presets
 
@@ -38,16 +39,16 @@ export const useHairStore = create(
 
                 // PARTING MATHEMATICS:
                 // Controls how the raycaster calculates the spherical grid to spawn braids.
-                partingRowMultiplier: 2,     // Increases/decreases the number of horizontal parting rows on the scalp.
-                partingPointMultiplier: 1.8, // Increases/decreases the number of braids placed along the widest row.
+                partingRowMultiplier: 5,     // Increases/decreases the number of horizontal parting rows on the scalp.
+                partingPointMultiplier: 5, // Increases/decreases the number of braids placed along the widest row.
 
                 // DYNAMIC DENSITY:
                 // If true, the engine automatically generates tighter, closer parts when a thinner braid (like "Micro") 
                 // is selected, ensuring the scalp looks properly filled without relying purely on the Density slider.
-                thicknessDensityScale: true, 
+                thicknessDensityScale: true,
             },
 
-            DENSITY_COUNTS: { 1: 16, 2: 30, 3: 50, 4: 80, 5: 100, 6: 160, 7: 250 },
+            DENSITY_COUNTS: { 1: 20, 2: 40, 3: 60, 4: 100, 5: 150, 6: 220, 7: 320 },
 
             STYLE_COLORS: {
                 1: '#6a331c', // Dark Brown
@@ -98,6 +99,7 @@ export const useHairStore = create(
             setAssetOverride: (slot, url) => set((state) => ({ assets: { ...state.assets, [slot]: url } })),
             resetAssets: () => set({ assets: {} }),
             setDebugRaycast: (val) => set({ debugRaycast: val }),
+            setTheme: (theme) => set({ theme }),
             addCustomPreset: (preset) => set((state) => ({ customPresets: [...(state.customPresets || []), preset] })),
 
             // Reset helper

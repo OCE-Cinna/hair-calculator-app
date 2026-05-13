@@ -64,13 +64,14 @@ export function AssetManager() {
         if (!presetName) return alert('Enter a preset name');
         const id = presetName.toLowerCase().replace(/\s+/g, '_');
         
-        const parsed = parsePresetFilename(presetName);
-        const lengthName = store.LENGTH_MAP[parsed.lengthPos][0];
-        const thicknessName = store.THICKNESS_MAP[parsed.thicknessPos][0];
-        const styleName = store.STYLE_MAP[parsed.stylePos][0];
+        // Get current labels for display
+        const lengthLabel = store.LENGTH_MAP[store.lengthPos][0];
+        const thicknessLabel = store.THICKNESS_MAP[store.thicknessPos][0];
+        const styleLabel = store.STYLE_MAP[store.stylePos][0];
         
-        const label = `${lengthName.split(' ')[0]} ${styleName}`;
-        const sublabel = `${thicknessName} · ${lengthName}`;
+        // Construct human-readable labels
+        const label = `${lengthLabel.split(' ')[0]} ${styleLabel}`;
+        const sublabel = `${thicknessLabel} · ${lengthLabel}`;
 
         const newPreset = {
             id,
@@ -90,70 +91,72 @@ export function AssetManager() {
 
     return (
         <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end">
-            {isOpen && (
-                <div className="bg-white/95 backdrop-blur-xl border border-gray-200 rounded-3xl shadow-2xl w-80 p-6 mb-4 max-h-[80vh] overflow-y-auto">
-                    <div className="flex items-center justify-between mb-6">
-                        <span className="font-bold text-gray-900 flex items-center gap-2">
-                            <ShieldAlert className="h-4 w-4 text-amber-500" /> Dev Kit
-                        </span>
-                        <button onClick={resetAssets} className="text-gray-400 hover:text-red-500"><RefreshCcw className="h-4 w-4" /></button>
+            <div className={`
+                bg-glass-menu backdrop-blur-3xl border border-divider-faint rounded-3xl shadow-glass w-80 p-6 mb-4 max-h-[80vh] overflow-y-auto 
+                transition-all duration-300 ease-in-out origin-bottom-right
+                ${isOpen ? 'scale-100 opacity-100 translate-y-0' : 'scale-95 opacity-0 translate-y-10 pointer-events-none'}
+            `}>
+                <div className="flex items-center justify-between mb-6">
+                    <span className="font-bold text-text-base flex items-center gap-2 transition-colors">
+                        <ShieldAlert className="h-4 w-4 text-brand" /> Dev Kit
+                    </span>
+                    <button onClick={resetAssets} className="text-text-faintest hover:text-brand transition-colors"><RefreshCcw className="h-4 w-4" /></button>
+                </div>
+
+                <div className="space-y-6">
+                    {/* Asset Upload Slots */}
+                    <div className="space-y-3">
+                        <h4 className="text-[10px] uppercase tracking-widest font-black text-brand">3D Asset Overrides</h4>
+                        {['custombust', 'boxbraid', 'boxbraidend', 'scalp_mask', 'uv_reference'].map(slot => (
+                            <label key={slot} className="flex items-center gap-3 p-2 bg-glass-input rounded-xl border border-divider-faint cursor-pointer hover:bg-glass-hover hover:border-border-glass-strong transition-colors">
+                                <FileUp className="h-3.5 w-3.5 text-text-faintest" />
+                                <span className="text-xs font-medium text-text-muted truncate flex-1">{slot.replace('_', ' ')}</span>
+                                <input type="file" className="hidden" onChange={(e) => handleFileUpload(e, slot)} />
+                                {assets[slot] && <div className="w-2 h-2 bg-brand rounded-full shadow-[0_0_8px_rgba(255,107,0,0.8)]" />}
+                            </label>
+                        ))}
                     </div>
 
-                    <div className="space-y-6">
-                        {/* Asset Upload Slots */}
-                        <div className="space-y-3">
-                            <h4 className="text-[10px] uppercase tracking-widest font-black text-gray-400">3D Asset Overrides</h4>
-                            {['custombust', 'boxbraid', 'boxbraidend', 'scalp_mask', 'uv_reference'].map(slot => (
-                                <label key={slot} className="flex items-center gap-3 p-2 bg-gray-50 rounded-xl border border-gray-100 cursor-pointer hover:bg-gray-100">
-                                    <FileUp className="h-3.5 w-3.5 text-gray-400" />
-                                    <span className="text-xs font-medium text-gray-600 truncate flex-1">{slot.replace('_', ' ')}</span>
-                                    <input type="file" className="hidden" onChange={(e) => handleFileUpload(e, slot)} />
-                                    {assets[slot] && <div className="w-2 h-2 bg-green-500 rounded-full" />}
-                                </label>
-                            ))}
-                        </div>
-
-                        {/* Preset Creator */}
-                        <div className="pt-6 border-t border-gray-100 space-y-4">
-                            <h4 className="text-[10px] uppercase tracking-widest font-black text-gray-400">Create Style Preset</h4>
-                            <div className="space-y-2">
-                                <label className="flex items-center gap-3 p-3 bg-indigo-50 rounded-2xl border-2 border-dashed border-indigo-100 cursor-pointer">
-                                    <ImageIcon className="h-5 w-5 text-indigo-500" />
-                                    <span className="text-xs font-bold text-indigo-700">
-                                        {assets.temp_preset_img ? 'Image Ready' : 'Upload Preview'}
-                                    </span>
-                                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'temp_preset_img')} />
-                                </label>
-                                <input
-                                    type="text"
-                                    placeholder="Preset Name (e.g. Summer Locs)"
-                                    className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-xs outline-none focus:border-indigo-300"
-                                    value={presetName}
-                                    onChange={(e) => setPresetName(e.target.value)}
-                                />
-                                <button
-                                    onClick={saveCurrentAsPreset}
-                                    disabled={!assets.temp_preset_img || !presetName}
-                                    className="w-full py-3 bg-indigo-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 disabled:opacity-50"
-                                >
-                                    <Plus className="h-4 w-4" /> Save to Gallery
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center justify-between pt-4">
-                            <span className="text-xs font-bold text-gray-700">Raycast Debug</span>
+                    {/* Preset Creator */}
+                    <div className="pt-6 border-t border-divider-faint space-y-4">
+                        <h4 className="text-[10px] uppercase tracking-widest font-black text-brand">Create Style Preset</h4>
+                        <div className="space-y-2">
+                            <label className="flex items-center gap-3 p-3 bg-brand/10 rounded-2xl border-2 border-dashed border-brand/30 cursor-pointer hover:bg-brand/20 transition-colors">
+                                <ImageIcon className="h-5 w-5 text-brand" />
+                                <span className="text-xs font-bold text-brand">
+                                    {assets.temp_preset_img ? 'Image Ready' : 'Upload Preview'}
+                                </span>
+                                <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'temp_preset_img')} />
+                            </label>
+                            <input
+                                type="text"
+                                placeholder="Preset Name (e.g. Summer Locs)"
+                                className="w-full p-3 bg-glass-input border border-divider-faint rounded-xl text-xs text-text-base placeholder-text-faint outline-none focus:border-brand/50 transition-colors"
+                                value={presetName}
+                                onChange={(e) => setPresetName(e.target.value)}
+                            />
                             <button
-                                onClick={() => setDebugRaycast(!debugRaycast)}
-                                className={`w-10 h-5 rounded-full transition-colors ${debugRaycast ? 'bg-indigo-600' : 'bg-gray-200'}`}
+                                onClick={saveCurrentAsPreset}
+                                disabled={!assets.temp_preset_img || !presetName}
+                                className="w-full py-3 bg-brand text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 disabled:opacity-50 disabled:bg-glass-hover disabled:text-text-faintest shadow-brand-subtle transition-colors"
                             >
-                                <div className={`w-3 h-3 bg-white rounded-full transition-transform ${debugRaycast ? 'translate-x-6' : 'translate-x-1'}`} />
+                                <Plus className="h-4 w-4" /> Save to Gallery
                             </button>
                         </div>
                     </div>
+
+                    <div className="flex items-center justify-between pt-4">
+                        <span className="text-xs font-bold text-text-muted transition-colors">Raycast Debug</span>
+                        <button
+                            onClick={() => setDebugRaycast(!debugRaycast)}
+                            className={`w-10 h-5 rounded-full transition-colors ${debugRaycast ? 'bg-brand' : 'bg-glass-hover'}`}
+                        >
+                            <div className={`w-3 h-3 bg-white rounded-full transition-transform ${debugRaycast ? 'translate-x-6' : 'translate-x-1'} shadow-sm`} />
+                        </button>
+                    </div>
                 </div>
-            )}
-            <button onClick={() => setIsOpen(!isOpen)} className="p-4 bg-gray-900 text-white rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-all">
+            </div>
+            <button onClick={() => setIsOpen(!isOpen)} className="p-4 bg-brand text-white rounded-full shadow-brand-subtle hover:scale-105 active:scale-95 transition-all">
                 <Settings className="h-6 w-6" />
             </button>
         </div>

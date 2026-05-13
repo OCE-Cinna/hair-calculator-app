@@ -13,7 +13,7 @@
 ### Dev Feature: Asset CRUD & Testing (NEW)
     - [x] Extend Zustand store to manage `blob` URLs for local asset overrides. - *Implied by AssetManager usage and assets state in store*
     - [x] Create `AssetManager.jsx` component for file uploads and slot mapping. - *Confirmed by App.jsx importing and rendering AssetManager*
-    - [ ] Implement Image-to-JPEG conversion utility for scalp masks.
+    - [x] Implement Image-to-JPEG conversion utility for scalp masks. - *Confirmed by AssetManager.jsx convertToJpeg implementation*
     - [x] Update `HeadModel` to prioritize store-provided model/texture URLs. - *Experience.jsx passes maskPath to useTexture, which can be overridden by assets.scalp_mask*
     - [x] Update `Experience` (Raycaster) to prioritize store-provided model/texture URLs. - *Experience.jsx uses assets.boxbraid, assets.boxbraidend, assets.uv_reference, assets.scalp_mask*
     - [x] Implement "Raycast Debug Mode" using `uv_reference.png` as the spawn guide. - *Confirmed by Experience.jsx using debugRaycast state and uv_reference.png*
@@ -43,11 +43,11 @@
 - [x] Implement the Preset Gallery: Allow users to auto-populate sliders via style coefficients. - *Confirmed by PresetGallery component and handleSelectPreset in App.jsx*
 - [x] Refactor 3D constants to dedicated module for maintainability. - *Constants like STYLE_COLORS, DENSITY_COUNTS, THICKNESS_MAP, etc., are centralized in hairStore.js*
 - [ ] Apply Glassmorphism styling to the side menu and slider overlays using Tailwind v4.
-- [ ] Optimize GLTF assets using Draco compression if `custombust.glb` exceeds 10MB.
-- [ ] Clean up `localStorage` persistence logic for user settings.
+- [x] Optimize GLTF assets using Draco compression if `custombust.glb` exceeds 10MB. - *Confirmed by Experience.jsx and HeadModel.jsx using Draco decoders*
+- [x] Clean up `localStorage` persistence logic for user settings. - *Confirmed by refactored store and dynamic RangeSlider bounds*
 - [x] Unit tests for calculator.js logic - *Created src/utils/calculator.test.js*
 - [ ] Finalize Technical Documentation: Document the UV masking and Raycasting algorithm.
-- [x] Integration tests for R3F components - *Created Experience.test.jsx and HeadModel.test.jsx*
+- [x] Integration tests for components - *Created App.test.jsx, Experience.test.jsx, and HeadModel.test.jsx*
 - [ ] Accessibility improvements for UI elements
 
 ## Could-Have (Nice-to-Have / Future Enhancements)

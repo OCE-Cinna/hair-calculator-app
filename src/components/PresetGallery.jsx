@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { parsePresetFilename } from '../constants/presets';
 
 const PresetCard = ({ preset, isActive, onClick }) => {
@@ -12,8 +12,8 @@ const PresetCard = ({ preset, isActive, onClick }) => {
         relative flex-shrink-0 w-44 h-56 rounded-2xl overflow-hidden cursor-pointer
         transition-all duration-300
         ${isActive
-                    ? 'ring-2 ring-offset-2 ring-gray-800 scale-[1.03] shadow-xl'
-                    : 'ring-1 ring-gray-200 hover:scale-[1.02] hover:shadow-lg'
+                    ? 'ring-2 ring-offset-2 ring-ring-offset ring-brand scale-[1.03] shadow-brand-subtle'
+                    : 'ring-1 ring-border-divider-faint hover:scale-[1.02] hover:shadow-lg hover:ring-border-divider'
                 }
       `}
         >
@@ -26,9 +26,9 @@ const PresetCard = ({ preset, isActive, onClick }) => {
             ) : (
                 <div className={`absolute inset-0 bg-gradient-to-b ${preset.bgGradient}`} />
             )}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent" />
             {isActive && (
-                <div className="absolute top-2.5 right-2.5 bg-white text-gray-900 text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
+                <div className="absolute top-2.5 right-2.5 bg-brand text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md">
                     Active
                 </div>
             )}
@@ -40,7 +40,7 @@ const PresetCard = ({ preset, isActive, onClick }) => {
     );
 };
 
-export const PresetGallery = ({ presets, onSelectPreset, activePresetId }) => {
+export const PresetGallery = ({ presets, onSelectPreset, activePresetId, isVisible, onToggle }) => {
     const scrollRef = useRef(null);
 
     const scroll = (dir) => {
@@ -48,41 +48,52 @@ export const PresetGallery = ({ presets, onSelectPreset, activePresetId }) => {
     };
 
     return (
-        <div className="border-b border-gray-100 bg-gray-50 px-8 py-5">
+        <div className="px-8 py-5 transition-all duration-500 overflow-hidden">
             <div className="flex items-center justify-between mb-3">
-                <div>
-                    <h3 className="text-sm font-semibold text-gray-800 uppercase tracking-widest">Style Presets</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">Click to load settings instantly</p>
+                <div className="flex items-center gap-4">
+                    <button
+                        onClick={onToggle}
+                        className="p-1.5 rounded-lg bg-glass-selector border border-border-divider text-brand hover:bg-brand hover:text-white transition-colors shadow-sm"
+                        aria-label={isVisible ? "Minimize presets" : "Expand presets"}
+                    >
+                        {isVisible ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </button>
+                    <div>
+                        <h3 className="text-sm font-bold text-text-base uppercase tracking-widest drop-shadow-sm transition-colors">Style Presets</h3>
+                        <p className="text-xs text-text-muted mt-0.5 transition-colors">Click to load settings instantly</p>
+                    </div>
                 </div>
                 <div className="flex gap-1">
                     <button
                         onClick={() => scroll(-1)}
-                        className="p-1.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors shadow-sm"
+                        className="p-1.5 rounded-lg bg-glass-selector border border-border-divider text-text-muted hover:bg-brand hover:text-white hover:border-brand transition-colors shadow-sm"
                     >
                         <ChevronLeft className="h-4 w-4" />
                     </button>
                     <button
                         onClick={() => scroll(1)}
-                        className="p-1.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors shadow-sm"
+                        className="p-1.5 rounded-lg bg-glass-selector border border-border-divider text-text-muted hover:bg-brand hover:text-white hover:border-brand transition-colors shadow-sm"
                     >
                         <ChevronRight className="h-4 w-4" />
                     </button>
                 </div>
             </div>
 
-            <div
-                ref={scrollRef}
-                className="flex gap-3 overflow-x-auto pb-2 scroll-smooth"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-            >
-                {presets.map(preset => (
-                    <PresetCard
-                        key={preset.id}
-                        preset={preset}
-                        isActive={activePresetId === preset.id}
-                        onClick={onSelectPreset}
-                    />
-                ))}
+            <div className={`transition-all duration-500 ease-in-out ${isVisible ? 'max-h-64 opacity-100 mt-2' : 'max-h-0 opacity-0 mt-0'}`}>
+                <div
+                    ref={scrollRef}
+                    className="flex gap-3 overflow-x-auto pb-2 scroll-smooth"
+                    style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                >
+                    {presets.map(preset => (
+                        <PresetCard
+                            key={preset.id}
+                            preset={preset}
+                            isActive={activePresetId === preset.id}
+                            onClick={onSelectPreset}
+                        />
+                    ))}
+                </div>
             </div>
         </div>
     );
