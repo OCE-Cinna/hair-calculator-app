@@ -1,94 +1,97 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 /**
- * Centralized state management for hair customization parameters
- * Using Zustand for global store
+ * useHairStore - The single source of truth for Cinna's PAH.
+ * Consolidates dynamic user state, static configuration maps, and calculation constants.
  */
+export const useHairStore = create(
+    persist(
+        (set) => ({
+            // --- Dynamic State (User Selections) ---
+            stylePos: 1,
+            thicknessPos: 3,
+            lengthPos: 2,
+            densityPos: 4,
+            debugRaycast: false,
+            assets: {}, // Dynamic asset paths for custom models/textures
 
-export const useHairStore = create((set, get) => ({
-    // ===== STATE =====
-    stylePos: 2,
-    thicknessPos: 4,
-    lengthPos: 3,
-    densityPos: 4,
+            // --- Static Configuration (Lookup Maps & Constants) ---
+            // Centralized here so both UI and 3D components stay in sync.
 
-    // ===== DATA MAPS (exported from original App.jsx) =====
-    styleMap: {
-        1: ['Knotless Braids', 1],
-        2: ['Box Braids', 3],
-        3: ['Twist', 4],
-        4: ['Locs', 5],
-    },
+            DENSITY_COUNTS: { 1: 8, 2: 16, 3: 28, 4: 42, 5: 60, 6: 90, 7: 120 },
 
-    thicknessMap: {
-        1: ['Micro', 0.5],
-        2: ['Small', 0.7],
-        3: ['Smedium', 0.8],
-        4: ['Medium', 1.0],
-        5: ['Large', 2.0],
-        6: ['Jumbo', 3.0],
-    },
+            STYLE_COLORS: {
+                1: '#6a331c', // Dark Brown
+                2: '#7a4d31', // Medium Brown
+                3: '#795c4b', // Light Brown
+                4: '#4c423b'  // Ash / Dark Grey
+            },
 
-    lengthMap: {
-        1: ['Ear', 0.5],
-        2: ['Neck', 0.7],
-        3: ['Shoulder', 1.0],
-        4: ['Mid-back', 1.2],
-        5: ['Waist', 1.5],
-        6: ['Hip', 2.0],
-    },
+            STYLE_MAP: {
+                1: ['Box Braids', 1.0], // Default to 1.0 for modifiers
+                2: ['Knotless', 1.2],
+                3: ['Twists', 0.9],
+                4: ['Locs', 1.1],
+            },
 
-    densityMap: {
-        1: ['12', 0.5],
-        2: ['24', 0.8],
-        3: ['40', 0.95],
-        4: ['80', 1.0],
-        5: ['100', 2.0],
-        6: ['200', 3.0],
-        7: ['300+', 4.0],
-    },
+            THICKNESS_MAP: {
+                1: ['Micro', 0.7],
+                2: ['Small', 0.9],
+                3: ['Smedium', 1.1],
+                4: ['Medium', 1.3],
+                5: ['Large', 1.6],
+                6: ['Jumbo', 2.0],
+                7: ['Mega', 2.5],
+            },
 
-    // ===== ACTIONS =====
-    setStylePos: (stylePos) => set({ stylePos }),
-    setThicknessPos: (thicknessPos) => set({ thicknessPos }),
-    setLengthPos: (lengthPos) => set({ lengthPos }),
-    setDensityPos: (densityPos) => set({ densityPos }),
+            LENGTH_MAP: {
+                1: ['Shoulder', 0.8],
+                2: ['Bra-strap', 1.0],
+                3: ['Mid-back', 1.2],
+                4: ['Waist', 1.4],
+                5: ['Butt', 1.7],
+                6: ['Thigh', 2.0],
+                7: ['Knee', 2.4],
+            },
 
-    /**
-     * Apply preset values (from parsePresetFilename result)
-     */
-    applyPreset: (preset) =>
-        set({
-            stylePos: preset.stylePos,
-            thicknessPos: preset.thicknessPos,
-            lengthPos: preset.lengthPos,
-            densityPos: preset.densityPos,
+            DENSITY_MAP: {
+                1: ['Very Low', 0.6],
+                2: ['Low', 0.8],
+                3: ['Medium Low', 0.9],
+                4: ['Standard', 1.0],
+                5: ['Full', 1.2],
+                6: ['Extra Full', 1.4],
+                7: ['Maximum', 1.7],
+            },
+
+            // --- Actions ---
+            setStylePos: (pos) => set({ stylePos: pos }),
+            setThicknessPos: (pos) => set({ thicknessPos: pos }),
+            setLengthPos: (pos) => set({ lengthPos: pos }),
+            setDensityPos: (pos) => set({ densityPos: pos }),
+            setAssets: (assets) => set({ assets }),
+            setDebugRaycast: (val) => set({ debugRaycast: val }),
+
+            // Reset helper
+            resetSelections: () => set({
+                stylePos: 1,
+                thicknessPos: 3,
+                lengthPos: 2,
+                densityPos: 4,
+            })
         }),
-
-    // ===== SELECTORS (COMPUTED) =====
-    /**
-     * Calculate estimated hair packs needed
-     * Formula: (style + thickness + density) x length x 0.95
-     */
-    calculatePacks: () => {
-        const state = get();
-        const style = state.styleMap[state.stylePos][1];
-        const thickness = state.thicknessMap[state.thicknessPos][1];
-        const length = state.lengthMap[state.lengthPos][1];
-        const density = state.densityMap[state.densityPos][1];
-        return ((style + thickness + density) * length) * 0.95;
-    },
-
-    /**
-     * Get current selection labels for display
-     */
-    getSelections: () => {
-        const state = get();
-        return {
-            style: state.styleMap[state.stylePos][0],
-            thickness: state.thicknessMap[state.thicknessPos][0],
-            length: state.lengthMap[state.lengthPos][0],
-            density: state.densityMap[state.densityPos][0],
-        };
-    },
-}));
+        {
+            name: 'hair-storage',
+            // Persist only user selections to localStorage.
+            // Maps and constants remain in the code to ensure they stay up-to-date.
+            partialize: (state) => ({
+                stylePos: state.stylePos,
+                thicknessPos: state.thicknessPos,
+                lengthPos: state.lengthPos,
+                densityPos: state.densityPos,
+                assets: state.assets,
+            }),
+        }
+    )
+);

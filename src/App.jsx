@@ -1,98 +1,24 @@
 import React, { useState, useRef } from 'react';
-import { Menu, X, ChevronLeft, ChevronRight, Sparkles, Github, Info } from 'lucide-react';
+import { Menu, X, Sparkles, Github, Info } from 'lucide-react';
 import './App.css';
 import { useHairStore } from './store/hairStore';
 import { Experience } from './components/Experience';
-
-// ============================================================
-// PRESET SYSTEM
-// ============================================================
-
-const STYLE_ALIASES = {
-  lock: 4, locs: 4, loc: 4,
-  twist: 3, twists: 3,
-  boxbraid: 2, box: 2, braid: 2,
-  knotless: 1,
-};
-
-const LENGTH_ALIASES = {
-  hip: 6, waist: 5, midback: 4, 'mid-back': 4,
-  shoulder: 3, neck: 2, ear: 1,
-};
-
-const THICKNESS_ALIASES = {
-  micro: 1, small: 2, smedium: 3,
-  medium: 4, large: 5, jumbo: 6,
-};
-
-const parsePresetFilename = (filename) => {
-  const base = filename.replace(/\.[^.]+$/, '').toLowerCase();
-  const parts = base.split('_');
-
-  let lengthPos = 3;
-  let thicknessPos = 4;
-  let stylePos = 2;
-
-  parts.forEach(part => {
-    if (LENGTH_ALIASES[part] !== undefined) lengthPos = LENGTH_ALIASES[part];
-    if (THICKNESS_ALIASES[part] !== undefined) thicknessPos = THICKNESS_ALIASES[part];
-    if (STYLE_ALIASES[part] !== undefined) stylePos = STYLE_ALIASES[part];
-  });
-
-  const densityDefaults = { 1: 6, 2: 5, 3: 4, 4: 4, 5: 3, 6: 2 };
-  const densityPos = densityDefaults[thicknessPos] || 4;
-
-  return { lengthPos, thicknessPos, stylePos, densityPos };
-};
-
-const PRESETS = [
-  {
-    id: 'hip_medium_lock',
-    label: 'Hip Locs',
-    sublabel: 'Medium · Hip Length',
-    image: '/hip_medium_lock.jpg',
-    bgGradient: 'from-amber-950 to-stone-800',
-  },
-  {
-    id: 'shoulder_micro_knotless',
-    label: 'Knotless',
-    sublabel: 'Micro · Shoulder',
-    image: '/shoulder_micro_knotless.jpg',
-    bgGradient: 'from-teal-900 to-emerald-950',
-  },
-  {
-    id: 'waist_small_boxbraid',
-    label: 'Box Braids',
-    sublabel: 'Small · Waist',
-    image: '/waist_small_boxbraid.jpg',
-    bgGradient: 'from-purple-950 to-indigo-900',
-  },
-  {
-    id: 'midback_jumbo_twist',
-    label: 'Jumbo Twists',
-    sublabel: 'Jumbo · Mid-Back',
-    image: '/midback_jumbo_twist.jpg',
-    bgGradient: 'from-rose-950 to-red-900',
-  },
-  {
-    id: 'ear_medium_twist',
-    label: 'Bob Twists',
-    sublabel: 'Medium · Ear',
-    image: '/ear_medium_twist.jpg',
-    bgGradient: 'from-sky-950 to-blue-900',
-  },
-  {
-    id: 'hip_large_twist',
-    label: 'Long Twists',
-    sublabel: 'Large · Hip',
-    image: '/hip_large_twist.jpg',
-    bgGradient: 'from-lime-950 to-green-900',
-  },
-];
+import { calculateHairPacks } from './utils/calculator';
+import { AssetManager } from './components/AssetManager';
+import { INITIAL_PRESETS } from './constants/presets';
+import { PresetGallery } from './components/PresetGallery';
 
 // ============================================================
 // BURGER MENU
 // ============================================================
+/**
+ * BurgerMenu component displays a sliding sidebar navigation with project information,
+ * how-it-works guide, tech stack, and links. It uses Tailwind CSS for styling and
+ * Lucide-React for icons.
+ * @param {object} props - The component props.
+ * @param {boolean} props.isOpen - Controls the visibility of the menu.
+ * @param {function} props.onClose - Callback function to close the menu.
+ */
 
 const BurgerMenu = ({ isOpen, onClose }) => (
   <>
@@ -193,123 +119,16 @@ const BurgerMenu = ({ isOpen, onClose }) => (
 );
 
 // ============================================================
-// PRESET CARD
-// ============================================================
-
-const PresetCard = ({ preset, isActive, onClick }) => {
-  const parsed = parsePresetFilename(preset.id);
-
-  return (
-    <button
-      onClick={() => onClick(preset, parsed)}
-      className={`
-        relative flex-shrink-0 w-44 h-56 rounded-2xl overflow-hidden cursor-pointer
-        transition-all duration-300
-        ${isActive
-          ? 'ring-2 ring-offset-2 ring-gray-800 scale-[1.03] shadow-xl'
-          : 'ring-1 ring-gray-200 hover:scale-[1.02] hover:shadow-lg'
-        }
-      `}
-      aria-pressed={isActive}
-      aria-label={`Load preset: ${preset.label}`}
-    >
-      {preset.image ? (
-        <img
-          src={preset.image}
-          alt={preset.label}
-          className="absolute inset-0 w-full h-full object-cover object-top"
-          onError={(e) => {
-            e.target.style.display = 'none';
-          }}
-        />
-      ) : (
-        <div className={`absolute inset-0 bg-gradient-to-b ${preset.bgGradient}`} />
-      )}
-
-      <div
-        className="absolute inset-0 opacity-20"
-        style={{
-          backgroundImage: `repeating-linear-gradient(
-            170deg,
-            transparent, transparent 3px,
-            rgba(255,255,255,0.08) 3px, rgba(255,255,255,0.08) 4px
-          )`,
-        }}
-      />
-
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-
-      {isActive && (
-        <div className="absolute top-2.5 right-2.5 bg-white text-gray-900 text-[10px] font-bold px-2 py-0.5 rounded-full shadow">
-          Active
-        </div>
-      )}
-
-      <div className="absolute bottom-0 left-0 right-0 p-3.5 text-left">
-        <p className="text-white font-semibold text-sm leading-tight">{preset.label}</p>
-        <p className="text-white/60 text-xs mt-0.5">{preset.sublabel}</p>
-      </div>
-    </button>
-  );
-};
-
-// ============================================================
-// PRESET GALLERY
-// ============================================================
-
-const PresetGallery = ({ onSelectPreset, activePresetId }) => {
-  const scrollRef = useRef(null);
-
-  const scroll = (dir) => {
-    scrollRef.current?.scrollBy({ left: dir * 200, behavior: 'smooth' });
-  };
-
-  return (
-    <div className="border-b border-gray-100 bg-gray-50 px-8 py-5">
-      <div className="flex items-center justify-between mb-3">
-        <div>
-          <h3 className="text-sm font-semibold text-gray-800 uppercase tracking-widest">Style Presets</h3>
-          <p className="text-xs text-gray-400 mt-0.5">Click to load settings instantly</p>
-        </div>
-        <div className="flex gap-1">
-          <button
-            onClick={() => scroll(-1)}
-            className="p-1.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors shadow-sm"
-            aria-label="Scroll left"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => scroll(1)}
-            className="p-1.5 rounded-lg bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 hover:text-gray-800 transition-colors shadow-sm"
-            aria-label="Scroll right"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-
-      <div
-        ref={scrollRef}
-        className="flex gap-3 overflow-x-auto pb-2 scroll-smooth"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-      >
-        {PRESETS.map(preset => (
-          <PresetCard
-            key={preset.id}
-            preset={preset}
-            isActive={activePresetId === preset.id}
-            onClick={onSelectPreset}
-          />
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// ============================================================
 // UI COMPONENTS
 // ============================================================
+/**
+ * StyleSelector component allows users to choose a hair braid style from a predefined map.
+ * It renders a group of buttons, where each button represents a style option.
+ * @param {object} props - The component props.
+ * @param {number} props.value - The currently selected style ID.
+ * @param {function} props.onChange - Callback function triggered when a style is selected.
+ * @param {object} props.map - A map object where keys are style IDs and values are arrays [label, modifier].
+ */
 
 function StyleSelector({ value, onChange, map }) {
   const options = Object.keys(map).map(key => ({ id: Number(key), label: map[key][0] }));
@@ -334,6 +153,21 @@ function StyleSelector({ value, onChange, map }) {
   );
 }
 
+/**
+ * RangeSlider component provides a customizable slider input with discrete steps,
+ * labels, and optional increment/decrement buttons. It displays the current value
+ * based on a provided map and updates the state via an onChange handler.
+ * @param {object} props - The component props.
+ * @param {string} props.id - Unique ID for the slider input.
+ * @param {number} props.min - Minimum value of the slider.
+ * @param {number} props.max - Maximum value of the slider.
+ * @param {number} props.step - Step increment for the slider.
+ * @param {number} props.value - Current value of the slider.
+ * @param {function} props.onChange - Callback function triggered when the slider value changes.
+ * @param {object} props.map - A map object where keys are slider values and values are arrays [label, modifier].
+ * @param {string} props.labelText - Label displayed above the slider.
+ * @param {string[]} [props.buttonLabels] - Optional array of two strings for decrement and increment button labels.
+ */
 function RangeSlider({ id, min, max, step, value, onChange, map, labelText, buttonLabels }) {
   const labels = Object.keys(map).map(k => map[Number(k)][0]);
   const percentage = ((value - min) / (max - min)) * 100;
@@ -408,17 +242,37 @@ function RangeSlider({ id, min, max, step, value, onChange, map, labelText, butt
 // ============================================================
 // APP CONTENT
 // ============================================================
+/**
+ * AppContent orchestrates the main UI and 3D visualization. It consumes state from the
+ * Zustand store, renders the 3D experience, and displays hair customization controls and calculation results.
+ */
 
 function AppContent() {
-  const store = useHairStore();
-  const stylePos = store.stylePos;
-  const thicknessPos = store.thicknessPos;
-  const lengthPos = store.lengthPos;
-  const densityPos = store.densityPos;
+  // Destructure state and maps from the store
+  const {
+    stylePos, setStylePos,
+    thicknessPos, setThicknessPos,
+    lengthPos, setLengthPos,
+    densityPos, setDensityPos,
+    STYLE_MAP, THICKNESS_MAP, LENGTH_MAP, DENSITY_MAP,
+  } = useHairStore(state => ({
+    stylePos: state.stylePos, setStylePos: state.setStylePos,
+    thicknessPos: state.thicknessPos, setThicknessPos: state.setThicknessPos,
+    lengthPos: state.lengthPos, setLengthPos: state.setLengthPos,
+    densityPos: state.densityPos, setDensityPos: state.setDensityPos,
+    STYLE_MAP: state.STYLE_MAP, THICKNESS_MAP: state.THICKNESS_MAP,
+    LENGTH_MAP: state.LENGTH_MAP, DENSITY_MAP: state.DENSITY_MAP,
+  }));
 
-  const packsResult = store.calculatePacks();
+  // Extract calculation modifiers from the centralized constants
+  const styleVal = STYLE_MAP[stylePos]?.[1] || 1.0; // Default to 1.0 for modifiers
+  const thicknessVal = THICKNESS_MAP[thicknessPos]?.[1] || 1.0;
+  const lengthVal = LENGTH_MAP[lengthPos]?.[1] || 1.0;
+  const densityVal = DENSITY_MAP[densityPos]?.[1] || 1.0;
 
-  const handleSlider = (setter) => (e) => setter(Number(e.target.value));
+  const packsResult = calculateHairPacks(styleVal, thicknessVal, densityVal, lengthVal);
+
+  const handleSlider = (setter) => (e) => setter(Number(e.target.value)); // Use destructured setters
 
   return (
     <div className="flex flex-col lg:flex-row p-8">
@@ -430,28 +284,28 @@ function AppContent() {
       {/* Controls panel */}
       <div className="w-full lg:w-1/2 p-6 flex flex-col space-y-4">
         <h2 className="text-2xl font-bold text-gray-800 mb-6">Hair Customization</h2>
-
-        <StyleSelector value={stylePos} onChange={store.setStylePos} map={store.styleMap} />
+        {/* Pass destructured setters and maps */}
+        <StyleSelector value={stylePos} onChange={setStylePos} map={STYLE_MAP} />
 
         <RangeSlider
           id="thickness"
           min={1}
-          max={6}
+          max={7}
           step={1}
           value={thicknessPos}
-          onChange={handleSlider(store.setThicknessPos)}
-          map={store.thicknessMap}
+          onChange={handleSlider(setThicknessPos)}
+          map={THICKNESS_MAP}
           labelText="Braid thickness"
           buttonLabels={['Smaller', 'Larger']}
         />
         <RangeSlider
           id="length"
           min={1}
-          max={6}
+          max={7}
           step={1}
           value={lengthPos}
-          onChange={handleSlider(store.setLengthPos)}
-          map={store.lengthMap}
+          onChange={handleSlider(setLengthPos)}
+          map={LENGTH_MAP}
           labelText="Braid length"
           buttonLabels={['Shorter', 'Longer']}
         />
@@ -461,8 +315,8 @@ function AppContent() {
           max={7}
           step={1}
           value={densityPos}
-          onChange={handleSlider(store.setDensityPos)}
-          map={store.densityMap}
+          onChange={handleSlider(setDensityPos)}
+          map={DENSITY_MAP}
           labelText="Braid density"
           buttonLabels={['Lower', 'Higher']}
         />
@@ -480,20 +334,40 @@ function AppContent() {
 // ============================================================
 // ROOT APP
 // ============================================================
+/**
+ * The main application component that sets up the overall layout,
+ * manages the burger menu and preset gallery, and renders the core
+ * AppContent. It also handles preset selection logic.
+ */
 
 export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activePresetId, setActivePresetId] = useState(null);
-  const store = useHairStore();
+  // Destructure customPresets and setters from the store
+  const { customPresets, setStylePos, setThicknessPos, setLengthPos, setDensityPos } = useHairStore();
 
-  const handleSelectPreset = (preset, parsed) => {
+  const allPresets = [...INITIAL_PRESETS, ...(customPresets || [])].map(p => ({
+    ...p,
+    // Ensure local preset images are correctly routed to the /presets/ subdirectory
+    image: p.image && !p.image.startsWith('http') && !p.image.startsWith('/presets/')
+      ? `/presets/${p.image.replace(/^\//, '')}`
+      : p.image
+  }));
+
+  const handleSelectPreset = (preset, parsed) => { // parsed comes from parsePresetFilename
     setActivePresetId(preset.id);
-    store.applyPreset(parsed);
+    setStylePos(parsed.stylePos);
+    setThicknessPos(parsed.thicknessPos);
+    setLengthPos(parsed.lengthPos);
+    setDensityPos(parsed.densityPos);
   };
 
   return (
     <>
       <BurgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
+
+      {/* Dev Feature: Asset CRUD & Testing */}
+      <AssetManager />
 
       <div className="bg-gray-100 min-h-screen p-4 flex justify-center items-start font-sans">
         <div className="bg-white max-w-7xl w-full rounded-xl shadow-2xl overflow-hidden my-4">
@@ -524,7 +398,7 @@ export default function App() {
           </header>
 
           {/* Preset gallery strip */}
-          <PresetGallery onSelectPreset={handleSelectPreset} activePresetId={activePresetId} />
+          <PresetGallery presets={allPresets} onSelectPreset={handleSelectPreset} activePresetId={activePresetId} />
 
           {/* Main content */}
           <AppContent />

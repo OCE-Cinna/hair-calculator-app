@@ -1,301 +1,297 @@
-import React, { useRef, useMemo, useEffect, useState } from 'react';
-import { Canvas, useThree, useFrame } from '@react-three/fiber';
-import { OrbitControls, Instances, Instance, useGLTF } from '@react-three/drei';
+import React, { useRef, useMemo, useEffect, useState, Suspense } from 'react';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { OrbitControls, useGLTF, useTexture, Loader } from '@react-three/drei';
 import * as THREE from 'three';
 import { useHairStore } from '../store/hairStore';
 import { HeadModel } from './HeadModel';
 
-const DENSITY_COUNTS = { 1: 8, 2: 16, 3: 28, 4: 42, 5: 60, 6: 90, 7: 120 };
-const STYLE_COLORS = {
-    1: '#2c1810',
-    2: '#1a0f08',
-    3: '#3d2314',
-    4: '#2a1a0e',
-};
+/**
+ * Internal Error Boundary to catch 3D-specific crashes (loading, WebGL context, etc.)
+ */
+class ExperienceErrorBoundary extends React.Component {
+    state = { hasError: false };
+    static getDerivedStateFromError() { return { hasError: true }; }
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="flex items-center justify-center w-full h-full bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg">
+                    <p className="text-gray-400 text-sm">Rendering Error: Please refresh or check assets.</p>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
+}
 
 /**
+ * Custom React hook for raycasting-based hair placement on a 3D head model.
+ * It samples points on the head's surface based on a UV texture mask and density settings.
+ * @param {React.RefObject<THREE.Group>} headMeshRef - Ref to the head model's THREE.Group.
+ * @param {THREE.Texture} texture - The UV mask texture (e.g., scalp_mask.jpeg) to determine spawnable areas.
+ * @param {number} stylePos - The current style position from the store (used for dependency tracking).
+ * @param {number} densityPos - The current density position from the store to determine the number of hair points.
+ * @returns {Array<{position: THREE.Vector3, normal: THREE.Vector3, uv: THREE.Vector2}>} An array of hair placement points.
  * Raycasting-based hair placement with UV texture masking
- * Shoots rays from a grid above the head downward
- * Samples scalp texture at ray-hit UV coordinates
- * Only spawns hair at WHITE pixels (skips BLACK pixels)
  */
-function useRaycastHairPlacement(headMeshRef, textureRef, stylePos, densityPos) {
+function useRaycastHairPlacement(headMeshRef, texture, stylePos, densityPos) {
     const [hairPoints, setHairPoints] = useState([]);
-
+    const DENSITY_COUNTS = useHairStore(state => state.DENSITY_COUNTS);
     useEffect(() => {
-        if (!headMeshRef.current || !textureRef.current) {
+        const headGroup = headMeshRef.current;
+        if (!headGroup || !texture || !texture.image || texture.image.width === 0) {
             setHairPoints([]);
             return;
         }
 
-        const targetCount = DENSITY_COUNTS[densityPos] ?? 42;
+        // Fallback to a safe count if store value is missing
+        const targetCount = (DENSITY_COUNTS && DENSITY_COUNTS[densityPos]) ?? 42;
         const raycaster = new THREE.Raycaster();
         const rayDirection = new THREE.Vector3(0, -1, 0);
 
-        // Generate ray grid above head (simplified 2D grid in XZ plane)
-        // Grid density: ~6x6 rays for MVP
-        const gridSize = 6;
-        const gridSpacing = 2.0 / gridSize;
+        const canvas = document.createElement('canvas');
+        const { width, height } = texture.image;
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        if (!ctx) {
+            console.error("PAH: Failed to initialize 2D context for hair placement.");
+            return;
+        }
+
+        ctx.drawImage(texture.image, 0, 0);
+        let imageData;
+        try {
+            imageData = ctx.getImageData(0, 0, width, height).data;
+        } catch (e) {
+            console.error("PAH: Image data access failed.", e);
+            return;
+        }
+
+        let headMesh = null;
+        headGroup.traverse((child) => { if (child.isMesh) headMesh = child; });
+        if (!headMesh || !headMesh.geometry) return;
+
+        const gridSize = 14;
+        const gridRange = 1.5;
+        const gridSpacing = (gridRange * 2) / gridSize;
         const raycastPoints = [];
 
-        for (let x = -1; x < 1; x += gridSpacing) {
-            for (let z = -1; z < 1; z += gridSpacing) {
-                // Ray originates above head
-                const rayOrigin = new THREE.Vector3(x, 3.5, z);
+        for (let x = -gridRange; x < gridRange; x += gridSpacing) {
+            for (let z = -gridRange; z < gridRange; z += gridSpacing) {
+                const rayOrigin = new THREE.Vector3(x, 4, z);
                 raycaster.set(rayOrigin, rayDirection);
-
-                // Intersect with head mesh
-                const headGroup = headMeshRef.current;
-                const headMesh = headGroup.children[0];
                 const intersects = raycaster.intersectObject(headMesh);
-
                 if (intersects.length > 0) {
                     const hit = intersects[0];
                     const uv = hit.uv;
-
                     if (uv) {
-                        // Sample scalp texture at UV coordinate
-                        const texData = textureRef.current;
-                        if (texData.image) {
-                            const canvas = document.createElement('canvas');
-                            canvas.width = texData.image.width;
-                            canvas.height = texData.image.height;
-                            const ctx = canvas.getContext('2d');
-                            ctx.drawImage(texData.image, 0, 0);
-                            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                            const data = imageData.data;
-
-                            const pixelX = Math.floor(uv.x * (canvas.width - 1));
-                            const pixelY = Math.floor((1 - uv.y) * (canvas.height - 1));
-                            const pixelIndex = (pixelY * canvas.width + pixelX) * 4;
-
-                            const brightness = (data[pixelIndex] + data[pixelIndex + 1] + data[pixelIndex + 2]) / 3;
-
-                            // WHITE (brightness > 128) = spawn hair
-                            // BLACK (brightness <= 128) = skip placement
-                            if (brightness > 128) {
-                                raycastPoints.push({
-                                    position: hit.point.clone(),
-                                    normal: hit.face.normal.clone(),
-                                    uv: uv.clone(),
-                                });
-                            }
+                        const pixelX = Math.floor(uv.x * (width - 1));
+                        const pixelY = Math.floor((1 - uv.y) * (height - 1));
+                        const pixelIndex = (pixelY * width + pixelX) * 4;
+                        if (imageData[pixelIndex] > 128) {
+                            raycastPoints.push({
+                                position: hit.point.clone(),
+                                normal: hit.face.normal.clone().transformDirection(headMesh.matrixWorld),
+                                uv: uv.clone()
+                            });
                         }
                     }
                 }
             }
         }
 
-        // Apply X-axis symmetry to ensure balanced styles
         const symmetricPoints = [];
-        raycastPoints.forEach(point => {
-            symmetricPoints.push(point);
-
-            // Mirror across YZ plane if not at center
-            if (Math.abs(point.position.x) > 0.05) {
-                const mirrorPoint = {
-                    position: new THREE.Vector3(-point.position.x, point.position.y, point.position.z),
-                    normal: new THREE.Vector3(-point.normal.x, point.normal.y, point.normal.z),
-                    uv: new THREE.Vector2(1 - point.uv.x, point.uv.y),
-                };
-                symmetricPoints.push(mirrorPoint);
+        raycastPoints.forEach(p => {
+            symmetricPoints.push(p);
+            if (Math.abs(p.position.x) > 0.05) {
+                symmetricPoints.push({
+                    position: new THREE.Vector3(-p.position.x, p.position.y, p.position.z),
+                    normal: new THREE.Vector3(-p.normal.x, p.normal.y, p.normal.z),
+                    uv: new THREE.Vector2(1 - p.uv.x, p.uv.y)
+                });
             }
         });
 
-        // Limit to target count
         setHairPoints(symmetricPoints.slice(0, targetCount));
-    }, [headMeshRef, textureRef, stylePos, densityPos]);
+    }, [headMeshRef, texture, stylePos, densityPos, DENSITY_COUNTS]); // Added DENSITY_COUNTS to dependencies
 
     return hairPoints;
 }
 
 /**
+ * HairStrands component renders instanced 3D hair segments (braids or fallback cylinders)
+ * at specified placement points on the head model. It dynamically adjusts scale, color,
+ * and orientation based on user selections (style, length, thickness).
+ * @param {object} props - The component props.
+ * @param {number} props.stylePos - The current style position, used for color.
+ * @param {number} props.lengthPos - The current length position, determining the number of segments.
+ * @param {number} props.thicknessPos - The current thickness position, scaling the hair instances.
+ * @param {Array<{position: THREE.Vector3, normal: THREE.Vector3, uv: THREE.Vector2}>} props.hairPlacementPoints - Array of points where hair should be placed.
  * Hair strands renderer using InstancedMesh with GLTF models
- * Falls back to simple cylinders if models fail to load
  */
-function HairStrands({ lengthPos, hairPlacementPoints }) {
-    let braidSegment = null;
-    let braidEnd = null;
-
-    try {
-        const segmentGLTF = useGLTF('/models/boxbraid.glb');
-        braidSegment = segmentGLTF.scene;
-        const endGLTF = useGLTF('/models/boxbraidend.glb');
-        braidEnd = endGLTF.scene;
-    } catch (error) {
-        console.warn('Failed to load braid models, using fallback cylinders:', error);
-    }
+function HairStrands({ stylePos, lengthPos, thicknessPos, hairPlacementPoints }) {
+    const { assets } = useHairStore();
+    const braidPath = assets?.boxbraid || "/models/boxbraid.glb";
+    const braidEndPath = assets?.boxbraidend || "/models/boxbraidend.glb";
 
     const instancedMeshRef = useRef();
     const endInstancedMeshRef = useRef();
 
-    // Number of segments based on length
-    const numSegments = lengthPos; // lengthPos ranges from 1 to 6
+    // useGLTF calls must be top-level and will be caught by ExperienceErrorBoundary if they fail
+    const segmentGLTF = useGLTF(braidPath);
+    const endGLTF = useGLTF(braidEndPath);
 
-    const transforms = useMemo(() => {
-        return hairPlacementPoints.map((point) => {
-            // Orient braid along surface normal (outward from head)
-            const quaternion = new THREE.Quaternion().setFromUnitVectors(
-                new THREE.Vector3(0, 1, 0),
-                point.normal
-            );
-            return { position: point.position, quaternion };
-        });
-    }, [hairPlacementPoints]);
+    const braidSegment = segmentGLTF?.scene;
+    const braidEnd = endGLTF?.scene;
+
+    const STYLE_COLORS = useHairStore(state => state.STYLE_COLORS);
+    const THICKNESS_MAP = useHairStore(state => state.THICKNESS_MAP);
+    useEffect(() => {
+        if (!braidSegment || !braidEnd) return;
+        const color = (STYLE_COLORS && STYLE_COLORS[stylePos]) || '#2c1810';
+        try {
+            braidSegment.traverse(c => { if (c.isMesh && c.material) c.material.color.set(color); });
+            braidEnd.traverse(c => { if (c.isMesh && c.material) c.material.color.set(color); });
+        } catch (e) {
+            console.error("PAH: Error updating hair colors.", e);
+        }
+    }, [braidSegment, braidEnd, stylePos, STYLE_COLORS]);
 
     useEffect(() => {
-        if (!instancedMeshRef.current || !endInstancedMeshRef.current || transforms.length === 0) return;
+        if (!instancedMeshRef.current || !endInstancedMeshRef.current || !hairPlacementPoints || hairPlacementPoints.length === 0) return;
+        if (!THICKNESS_MAP || !THICKNESS_MAP[thicknessPos]) return;
 
-        const segmentMesh = instancedMeshRef.current;
-        const endMesh = endInstancedMeshRef.current;
+        if (!braidSegment || !braidEnd) return; // Guard for geometry access
 
-        // Set instance count
-        segmentMesh.count = transforms.length * numSegments;
-        endMesh.count = transforms.length;
+        const segmentHeight = 0.1;
+        const matrix = new THREE.Matrix4();
+        instancedMeshRef.current.count = hairPlacementPoints.length * lengthPos;
+        endInstancedMeshRef.current.count = hairPlacementPoints.length;
 
-        // Set transforms for segments
-        transforms.forEach((transform, braidIndex) => {
-            for (let segmentIndex = 0; segmentIndex < numSegments; segmentIndex++) {
-                const instanceIndex = braidIndex * numSegments + segmentIndex;
-                const matrix = new THREE.Matrix4();
-                const position = transform.position.clone();
-                // Stack segments vertically
-                position.add(new THREE.Vector3(0, segmentIndex * 0.1, 0)); // Adjust height as needed
-                matrix.setPosition(position);
-                matrix.multiply(new THREE.Matrix4().makeRotationFromQuaternion(transform.quaternion));
-                segmentMesh.setMatrixAt(instanceIndex, matrix);
+        const tScale = THICKNESS_MAP[thicknessPos][1]; // Get the thickness modifier
+        const scaleVec = new THREE.Vector3(tScale, 1, tScale); // Scale X and Z for thickness
+
+        hairPlacementPoints.forEach((point, i) => {
+            const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), point.normal);
+            for (let j = 0; j < lengthPos; j++) {
+                try {
+                    const pos = point.position.clone().add(point.normal.clone().multiplyScalar(j * segmentHeight));
+                    matrix.compose(pos, quaternion, scaleVec); // Apply thickness scale
+                    instancedMeshRef.current.setMatrixAt(i * lengthPos + j, matrix);
+                } catch (e) {
+                    // Skip corrupted points
+                    continue;
+                }
             }
-
-            // Set transform for end cap
-            const endMatrix = new THREE.Matrix4();
-            const endPosition = transform.position.clone();
-            endPosition.add(new THREE.Vector3(0, numSegments * 0.1, 0)); // Position at the top
-            endMatrix.setPosition(endPosition);
-            endMatrix.multiply(new THREE.Matrix4().makeRotationFromQuaternion(transform.quaternion));
-            endMesh.setMatrixAt(braidIndex, endMatrix);
+            try {
+                const endPos = point.position.clone().add(point.normal.clone().multiplyScalar(lengthPos * segmentHeight));
+                matrix.compose(endPos, quaternion, scaleVec); // Apply thickness scale to end cap
+                endInstancedMeshRef.current.setMatrixAt(i, matrix);
+            } catch (e) { }
         });
+        instancedMeshRef.current.instanceMatrix.needsUpdate = true;
+        endInstancedMeshRef.current.instanceMatrix.needsUpdate = true;
+    }, [hairPlacementPoints, lengthPos, thicknessPos, THICKNESS_MAP]); // Added THICKNESS_MAP to dependencies
 
-        segmentMesh.instanceMatrix.needsUpdate = true;
-        endMesh.instanceMatrix.needsUpdate = true;
-    }, [transforms, numSegments]);
+    if (hairPlacementPoints.length === 0) return null;
 
-    if (transforms.length === 0) return null;
+    // Safe access to geometries
+    const segmentGeo = braidSegment?.children?.[0]?.geometry;
+    const segmentMat = braidSegment?.children?.[0]?.material;
+    const endGeo = braidEnd?.children?.[0]?.geometry;
+    const endMat = braidEnd?.children?.[0]?.material;
 
-    if (braidSegment && braidEnd) {
+    if (segmentGeo && endGeo) {
         return (
             <group>
-                <instancedMesh ref={instancedMeshRef} args={[braidSegment.children[0].geometry, braidSegment.children[0].material, transforms.length * numSegments]} />
-                <instancedMesh ref={endInstancedMeshRef} args={[braidEnd.children[0].geometry, braidEnd.children[0].material, transforms.length]} />
+                <instancedMesh ref={instancedMeshRef} args={[segmentGeo, segmentMat, 2000]} />
+                <instancedMesh ref={endInstancedMeshRef} args={[endGeo, endMat, 500]} />
             </group>
         );
     } else {
-        // Fallback to cylinders
         return (
             <group>
-                {transforms.map((transform, i) => (
-                    <mesh key={i} position={transform.position} quaternion={transform.quaternion}>
-                        <cylinderGeometry args={[0.02, 0.02, lengthPos * 0.1, 8]} />
-                        <meshStandardMaterial color="#2c1810" />
-                    </mesh>
-                ))}
+                {hairPlacementPoints.map((point, i) => {
+                    const tScale = (THICKNESS_MAP && THICKNESS_MAP[thicknessPos]) ? THICKNESS_MAP[thicknessPos][1] : 1;
+                    const color = (STYLE_COLORS && STYLE_COLORS[stylePos]) || '#2c1810';
+                    const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), point.normal);
+                    const pos = point.position.clone().add(point.normal.clone().multiplyScalar((lengthPos * 0.1) / 2));
+                    return (
+                        <mesh key={i} position={pos} quaternion={quaternion}>
+                            <cylinderGeometry args={[0.02 * tScale, 0.02 * tScale, lengthPos * 0.1, 8]} /> {/* Apply thickness scale */}
+                            <meshStandardMaterial color={color} />
+                        </mesh>
+                    );
+                })}
             </group>
         );
     }
 }
 
 /**
- * Directional light that follows camera
+ * CameraFollowLight component creates a directional light that follows the camera's position,
+ * ensuring consistent lighting on the 3D scene regardless of camera movement.
+ * @param {object} props - The component props.
+ * @param {number} [props.intensity=1] - The intensity of the directional light.
  */
 function CameraFollowLight({ intensity = 1 }) {
     const { camera } = useThree();
     const lightRef = useRef();
-
     useFrame(() => {
         if (!lightRef.current) return;
         lightRef.current.position.copy(camera.position);
         lightRef.current.target.position.set(0, 2, 0);
         lightRef.current.target.updateMatrixWorld();
     });
-
     return <directionalLight ref={lightRef} intensity={intensity} />;
 }
 
 /**
- * Main 3D scene component (R3F Canvas context)
+ * ThreeDSceneContent is the main content wrapper for the R3F Canvas.
+ * It sets up the scene's lighting, camera controls, loads the head model, and renders the hair strands.
  */
 function ThreeDSceneContent() {
     const headGroupRef = useRef(null);
-    const textureRef = useRef(null);
-
-    // Subscribe to Zustand store
-    const stylePos = useHairStore((state) => state.stylePos);
-    const lengthPos = useHairStore((state) => state.lengthPos);
-    const densityPos = useHairStore((state) => state.densityPos);
-
-    // Load scalp texture for UV masking
-    useEffect(() => {
-        const textureLoader = new THREE.TextureLoader();
-        textureLoader.load('/scalp_mask.jpeg', (texture) => {
-            textureRef.current = texture;
-        });
-    }, []);
-
-    // Compute hair placement points using raycasting + texture masking
-    const hairPlacementPoints = useRaycastHairPlacement(
-        headGroupRef,
-        textureRef,
-        stylePos,
-        densityPos
-    );
+    const { assets, debugRaycast, stylePos, lengthPos, densityPos } = useHairStore();
+    const thicknessPos = useHairStore(state => state.thicknessPos); // Get thicknessPos from store
+    const maskPath = debugRaycast ? (assets.uv_reference || "/textures/uv_reference.png") : (assets.scalp_mask || "/textures/scalp_mask.jpeg"); // This line was duplicated, removed the extra one.
+    const mask = useTexture(maskPath);
+    const hairPlacementPoints = useRaycastHairPlacement(headGroupRef, mask, stylePos, densityPos);
 
     return (
         <>
-            <color attach="background" args={['#E5E7EB']} />
-            <ambientLight intensity={0.8} color="#F5F0FF" />
-            <directionalLight position={[5, 10, 7.5]} intensity={0.8} />
+            <color attach="background" args={['#f3f4f6']} />
+            <ambientLight intensity={0.8} color="#ffffff" />
+            <directionalLight position={[5, 10, 7.5]} intensity={1.5} />
             <CameraFollowLight intensity={1} />
-
-            <OrbitControls
-                enableDamping
-                dampingFactor={0.15}
-                target={[0, 1, 0]}
-                maxPolarAngle={Math.PI / 2}
-                minPolarAngle={0.2}
-                minDistance={5}
-                maxDistance={10}
-
-            />
-
+            <OrbitControls enableDamping dampingFactor={0.15} target={[0, 1.5, 0]} maxPolarAngle={Math.PI / 1.5} minPolarAngle={0.2} minDistance={5} maxDistance={12} />
             <HeadModel ref={headGroupRef} />
-            <HairStrands
-                lengthPos={lengthPos}
-                hairPlacementPoints={hairPlacementPoints}
-            />
+            <HairStrands stylePos={stylePos} lengthPos={lengthPos} thicknessPos={thicknessPos} hairPlacementPoints={hairPlacementPoints} />
         </>
     );
 }
 
 /**
- * Experience: Main 3D viewport component
- * Encapsulates all R3F Canvas setup and 3D logic
+ * Experience component provides the main entry point for the 3D scene.
+ * It sets up the R3F Canvas and handles suspense for asset loading.
  */
 export function Experience() {
     return (
-        <div
-            className="w-full h-full bg-gray-100 rounded-lg shadow-inner relative overflow-hidden"
-            style={{ touchAction: 'none' }}
-        >
-            <Canvas camera={{ fov: 40, position: [0, 0, 10] }}>
-                <ThreeDSceneContent />
-            </Canvas>
+        <div className="w-full h-full bg-gray-100 rounded-lg shadow-inner relative overflow-hidden" style={{ touchAction: 'none' }}>
+            <ExperienceErrorBoundary>
+                <Canvas camera={{ fov: 50, position: [0, 2, 10] }}>
+                    <Suspense fallback={null}>
+                        <ThreeDSceneContent />
+                    </Suspense>
+                </Canvas>
+                <Loader />
+            </ExperienceErrorBoundary>
         </div>
     );
 }
 
-// Preload GLTF models (only if they exist)
 try {
     useGLTF.preload('/models/boxbraid.glb');
     useGLTF.preload('/models/boxbraidend.glb');
-} catch (error) {
-    console.warn('Braid model preload failed:', error);
-}
+} catch (e) { }
