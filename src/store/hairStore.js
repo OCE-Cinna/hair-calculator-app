@@ -20,7 +20,34 @@ export const useHairStore = create(
             // --- Static Configuration (Lookup Maps & Constants) ---
             // Centralized here so both UI and 3D components stay in sync.
 
-            DENSITY_COUNTS: { 1: 8, 2: 16, 3: 28, 4: 42, 5: 60, 6: 90, 7: 120 },
+            // --- Dev Kit Configuration (Collision & Parting Math) ---
+            // This section exposes core mathematical variables for the 3D physics engine and raycaster.
+            // Tweaking these values allows developers to fine-tune hair draping and parting aesthetics
+            // without needing to modify the complex loops in Experience.jsx.
+            DEV_CONFIG: {
+                // PRIMARY COLLISION (Jaw/Face):
+                // Defines a mathematical sphere around the model's head to prevent hair from clipping into the face.
+                headCenterY: 1.25,   // Vertical position of the head sphere (0 is the floor, 1.4 is top of head)
+                headRadius: 0.95,    // The size of the head sphere. Increase this if hair clips into the cheeks/jaw.
+
+                // SECONDARY COLLISION (Chest/Shoulders):
+                // Defines a larger, lower sphere to simulate shoulders, forcing the hair to drape organically over them.
+                torsoCenterY: 0.2,   // Vertical position of the shoulder sphere. Lower = further down the chest.
+                torsoRadius: 1.25,   // Size of the shoulder sphere. Increase if the model has very broad shoulders.
+                torsoPushOut: 0.5,   // Collision strength. Higher = hair glides outward more aggressively on the shoulder.
+
+                // PARTING MATHEMATICS:
+                // Controls how the raycaster calculates the spherical grid to spawn braids.
+                partingRowMultiplier: 2,     // Increases/decreases the number of horizontal parting rows on the scalp.
+                partingPointMultiplier: 1.8, // Increases/decreases the number of braids placed along the widest row.
+
+                // DYNAMIC DENSITY:
+                // If true, the engine automatically generates tighter, closer parts when a thinner braid (like "Micro") 
+                // is selected, ensuring the scalp looks properly filled without relying purely on the Density slider.
+                thicknessDensityScale: true, 
+            },
+
+            DENSITY_COUNTS: { 1: 16, 2: 30, 3: 50, 4: 80, 5: 100, 6: 160, 7: 250 },
 
             STYLE_COLORS: {
                 1: '#6a331c', // Dark Brown
@@ -37,12 +64,12 @@ export const useHairStore = create(
             },
 
             THICKNESS_MAP: {
-                1: ['Micro', 0.7],
-                2: ['Small', 0.9],
-                3: ['Smedium', 1.1],
-                4: ['Medium', 1.3],
-                5: ['Large', 1.6],
-                6: ['Jumbo', 2.0],
+                1: ['Micro', 0.02],
+                2: ['Small', 0.04],
+                3: ['Smedium', 0.05],
+                4: ['Medium', 0.07],
+                5: ['Large', 0.12],
+                6: ['Jumbo', 0.25],
             },
 
             LENGTH_MAP: {
