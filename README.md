@@ -1,30 +1,31 @@
-# Cinna's PAH - Protective Afro-Hairstyle Visualizer & Calculator
+# Cinna's PAH — Protective Afro-Hairstyle Visualizer & Calculator
 
-This is a Semester 3 HBO-ICT student project at Fontys University of Applied Sciences. The project digitizes experience-based knowledge in Afro-hair care, helping users estimate hair extension requirements through real-time 3D visualization.
+A Semester 3 HBO-ICT student project at Fontys University of Applied Sciences. The application digitizes experience-based knowledge in Afro-hair care, helping users estimate hair extension requirements through real-time 3D visualization and a formula-backed pack calculator.
 
 ## Tech Stack
 
-- **React 19** - UI Logic & Component Lifecycle
-- **Three.js (React Three Fiber)** - Procedural 3D rendering & InstancedMesh optimization
-- **Zustand** - Decoupled state management (User & Dev stores)
-- **Tailwind CSS v4** - Ergonomic Glassmorphism UI
-- **Blender** - Custom low-poly asset modeling (`custombust.glb`, `boxbraid.glb`)
+- **React 19** — UI logic and component lifecycle
+- **Three.js (React Three Fiber)** — Procedural 3D rendering via `InstancedMesh`
+- **Zustand** — Decoupled state management (`useHairStore`, `useDevStore`)
+- **Tailwind CSS v4** — Glassmorphism design system with OKLCH color tokens
+- **Blender** — Custom low-poly asset modeling (`custombust.glb`, `boxbraid.glb`)
 
 ## Features
 
-- **Procedural Hair Engine**: Real-time raycasting and UV-masked spawning for realistic parting.
-- **Dynamic Physics**: Stiffness-biased gravity model for organic braid draping.
-- **Pack Estimator**: Mathematical formula validated against professional stylist benchmarks.
-- **Modular Dev Kit**: Integrated Asset Manager for real-time model hot-swapping and raycast debugging.
-- **Preset CRUD**: Save, edit, and delete custom hairstyle configurations locally.
-- **Responsive Scaling**: Mobile-first design optimized for ≥30 FPS on modern devices (e.g., Pixel 8).
+- **Procedural Hair Engine** — Real-time raycasting with UV-masked scalp spawning for realistic parting
+- **Physics Simulation** — Stiffness-biased gravity model for organic braid draping and shoulder collision
+- **Pack Estimator** — Formula validated against professional stylist benchmarks: `(style + thickness + density) × length × 0.95`
+- **Stylist Mode** — Advanced calibration panel for professionals: override 3D models, tune collision spheres, and adjust the pack calibration factor in real time
+- **Preset Gallery** — Browse, select, and save custom hairstyle configurations with local persistence
+- **Adaptive Performance** — Mobile-first rendering: bloom and noise effects automatically disabled below a device threshold to maintain ≥30 FPS
+- **Theme System** — Light, dark, and system-preference modes with smooth OKLCH color transitions
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js (v18 or higher)
-- npm or yarn
+- Node.js v18 or higher
+- npm
 
 ### Installation
 
@@ -32,42 +33,67 @@ This is a Semester 3 HBO-ICT student project at Fontys University of Applied Sci
 git clone https://github.com/OCE-Cinna/hair-calculator-app.git
 cd hair-calculator-app
 npm install
+npm run dev
 ```
 
-### 3D Model Setup
+### 3D Asset Setup
 
-The application looks for optimized assets in `public/models/`. High-fidelity models are migrated from `src/assets/` during build process:
-- `custombust.glb` (Scalp mesh)
-- `boxbraid.glb` / `boxbraidend.glb` (Box Braids)
-- `twist.glb` / `twistend.glb` (Twists & Locs)
-- `flatbraid.glb` / `flatbraidend.glb` (Knotless)
+Place the following models in `public/models/` and textures in `public/textures/`:
+
+| File | Purpose |
+|------|---------|
+| `custombust.glb` | Base head and torso mesh |
+| `boxbraid.glb` / `boxbraidend.glb` | Box Braids segments |
+| `flatbraid.glb` / `flatbraidend.glb` | Knotless segments |
+| `twist.glb` / `twistend.glb` | Twists and Locs segments |
+| `scalp_mask.jpeg` | UV mask — white = spawn, black = part |
 
 ### Scripts
 
-- `npm run dev`: Start local development server.
-- `npm run build`: Generate production-ready bundle with Draco compression.
-- `npm run preview`: Preview production build locally.
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start local development server |
+| `npm run build` | Generate production bundle |
+| `npm run preview` | Preview production build locally |
+| `npm test` | Run test suite |
 
 ## Project Architecture
 
 ```
 src/
 ├── components/
-│   ├── Experience.jsx      # 3D Physics Loop & Raycasting Engine
-│   ├── HeadModel.jsx       # Theme-aware scalp mesh component
-│   ├── AssetManager.jsx    # Developer CRUD & Debugging tools
-│   └── Sliders.jsx         # Parametric hairstyle controls
+│   ├── Experience.jsx       # 3D physics loop, raycasting engine, InstancedMesh rendering
+│   ├── StylistPanel.jsx     # Professional calibration panel (Stylist Mode)
+│   ├── HeadModel.jsx        # Theme-aware scalp mesh loader
+│   ├── PresetGallery.jsx    # Preset CRUD and gallery display
+│   ├── HairModels.jsx       # GLTF model loader helpers
+│   └── ThreeDCanvas.jsx     # R3F Canvas wrapper and postprocessing
 ├── store/
-│   └── hairStore.js        # Modular Zustand stores (useHairStore, useDevStore)
-└── App.jsx                 # Core layout & Responsive scaling logic
+│   └── hairStore.js         # Zustand stores: useHairStore (user state), useDevStore (calibration)
+├── constants/
+│   └── presets.js           # Initial preset definitions
+├── utils/
+│   └── calculator.js        # Pack estimation formula
+└── App.jsx                  # Root layout, BurgerMenu, ControlCard compound components
 ```
+
+## Stylist Mode
+
+Enable **Stylist Mode** from the main menu to unlock the calibration panel. This is designed for professional stylists who need precise control over the calculation and 3D engine behavior.
+
+Stylist Mode exposes:
+
+- **Pack Calibration Factor** — Adjust the 0.95 normalization factor for hair brands with different strand densities
+- **Collision Sphere Tuning** — Modify the head and torso bounding volumes that drive hair draping physics
+- **Debug Visualizer** — Render wireframe collision boundaries directly in the 3D scene
+- **Model Overrides** — Hot-swap the bust or braid GLB files without restarting the dev server
+- **Preset Management** — Create and manage custom presets with uploaded preview images
 
 ## Documentation
 
-Detailed technical breakdowns available in project repository:
-- [3D Engine Guide](./3D_ENGINE_GUIDE.md): Math, Raycasting, and Physics details.
-- [Dev Logbook](./DEVLOG_PHASES.md): Phased development journey and commit evidence.
+- [User Guide](./TUTORIAL.md) — Complete walkthrough for end users
+- [TODO](./TODO.md) — Tracked development tasks and roadmap
 
 ## License
 
-This project is licensed under **GNU Affero General Public License v3.0 (AGPLv3)**. See [LICENSE](./LICENSE) for details.
+Licensed under the **GNU Affero General Public License v3.0 (AGPLv3)**. See [LICENSE](./LICENSE) for details.
