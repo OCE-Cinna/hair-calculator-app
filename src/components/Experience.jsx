@@ -436,7 +436,7 @@ function HairStrands({ stylePos, lengthPos, thicknessPos, hairPlacementPoints })
                 quaternion.setFromUnitVectors(upVec, currentDir);
                 matrix.compose(currentPos, quaternion, finalScale);
                 endInstancedMeshRef.current.setMatrixAt(i, matrix);
-            } catch (e) { console.error("PAH: Physics loop error", e); }
+            } catch (e) { }
         });
 
         // Set the final required instance counts
@@ -469,7 +469,7 @@ function HairStrands({ stylePos, lengthPos, thicknessPos, hairPlacementPoints })
     if (segmentGeo && endGeo) {
         return (
             <group>
-                <instancedMesh ref={instancedMeshRef} args={[segmentGeo, braidMaterial, 60000]} />
+                <instancedMesh ref={instancedMeshRef} args={[segmentGeo, braidMaterial, 30000]} />
                 <instancedMesh ref={endInstancedMeshRef} args={[endGeo, braidMaterial, 1000]} />
             </group>
         );
