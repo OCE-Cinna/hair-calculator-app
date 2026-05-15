@@ -1,94 +1,156 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 /**
- * Centralized state management for hair customization parameters
- * Using Zustand for global store
+ * Static Configuration (Lookup Maps & Constants)
+ * Moved outside the store to avoid redundant persistence in localStorage.
  */
-
-export const useHairStore = create((set, get) => ({
-    // ===== STATE =====
-    stylePos: 2,
-    thicknessPos: 4,
-    lengthPos: 3,
-    densityPos: 4,
-
-    // ===== DATA MAPS (exported from original App.jsx) =====
-    styleMap: {
-        1: ['Knotless Braids', 1],
-        2: ['Box Braids', 3],
-        3: ['Twist', 4],
-        4: ['Locs', 5],
+export const CONFIG_MAPS = {
+    DENSITY_COUNTS: { 1: 20, 2: 40, 3: 60, 4: 100, 5: 150, 6: 220, 7: 320 },
+    STYLE_COLORS: {
+        1: '#6a331c', // Dark Brown
+        2: '#7a4d31', // Medium Brown
+        3: '#795c4b', // Light Brown
+        4: '#4c423b'  // Ash / Dark Grey
     },
-
-    thicknessMap: {
-        1: ['Micro', 0.5],
-        2: ['Small', 0.7],
-        3: ['Smedium', 0.8],
-        4: ['Medium', 1.0],
-        5: ['Large', 2.0],
-        6: ['Jumbo', 3.0],
+    STYLE_MAP: {
+        1: ['Box Braids', 1.0],
+        2: ['Knotless', 1.2],
+        3: ['Twists', 0.9],
+        4: ['Locs', 1.1],
     },
-
-    lengthMap: {
-        1: ['Ear', 0.5],
-        2: ['Neck', 0.7],
-        3: ['Shoulder', 1.0],
-        4: ['Mid-back', 1.2],
-        5: ['Waist', 1.5],
+    THICKNESS_MAP: {
+        1: ['Micro', 0.02],
+        2: ['Small', 0.04],
+        3: ['Smedium', 0.05],
+        4: ['Medium', 0.07],
+        5: ['Large', 0.12],
+        6: ['Jumbo', 0.25],
+    },
+    LENGTH_MAP: {
+        1: ['Ear', 0.8],
+        2: ['Jaw', 1.0],
+        3: ['Shoulder', 1.2],
+        4: ['Mid-back', 1.4],
+        5: ['Waist', 1.7],
         6: ['Hip', 2.0],
     },
-
-    densityMap: {
-        1: ['12', 0.5],
-        2: ['24', 0.8],
-        3: ['40', 0.95],
-        4: ['80', 1.0],
-        5: ['100', 2.0],
-        6: ['200', 3.0],
-        7: ['300+', 4.0],
+    DENSITY_MAP: {
+        1: ['Very Low', 0.6],
+        2: ['Low', 0.8],
+        3: ['Medium', 1.0],
+        4: ['Full', 1.2],
+        5: ['Very Full', 1.4],
     },
+};
 
-    // ===== ACTIONS =====
-    setStylePos: (stylePos) => set({ stylePos }),
-    setThicknessPos: (thicknessPos) => set({ thicknessPos }),
-    setLengthPos: (lengthPos) => set({ lengthPos }),
-    setDensityPos: (densityPos) => set({ densityPos }),
+/**
+ * useHairStore - The core selection and configuration store.
+ * Handles user hairstyle choices and provides access to static maps.
+ */
+export const useHairStore = create(
+    persist(
+        (set) => ({
+            // --- Dynamic State (User Selections) ---
+            stylePos: 1,
+            thicknessPos: 4,
+            lengthPos: 3,
+            densityPos: 4,
+            theme: 'system', // 'light', 'dark', or 'system'
+            customPresets: [], // Stores user-created presets
+            _hasHydrated: false,
 
-    /**
-     * Apply preset values (from parsePresetFilename result)
-     */
-    applyPreset: (preset) =>
-        set({
-            stylePos: preset.stylePos,
-            thicknessPos: preset.thicknessPos,
-            lengthPos: preset.lengthPos,
-            densityPos: preset.densityPos,
+            // --- Configuration Getters (Maintain compatibility with existing selectors) ---
+            DENSITY_COUNTS: CONFIG_MAPS.DENSITY_COUNTS,
+            STYLE_COLORS: CONFIG_MAPS.STYLE_COLORS,
+            STYLE_MAP: CONFIG_MAPS.STYLE_MAP,
+            THICKNESS_MAP: CONFIG_MAPS.THICKNESS_MAP,
+            LENGTH_MAP: CONFIG_MAPS.LENGTH_MAP,
+            DENSITY_MAP: CONFIG_MAPS.DENSITY_MAP,
+
+            // --- Actions ---
+            setStylePos: (pos) => set({ stylePos: pos }),
+            setThicknessPos: (pos) => set({ thicknessPos: pos }),
+            setLengthPos: (pos) => set({ lengthPos: pos }),
+            setDensityPos: (pos) => set({ densityPos: pos }),
+            setTheme: (theme) => set({ theme }),
+            setHasHydrated: (state) => set({ _hasHydrated: state }),
+
+            // Preset CRUD
+            addCustomPreset: (preset) => set((state) => ({
+                customPresets: [...(state.customPresets || []), preset]
+            })),
+            deleteCustomPreset: (id) => set((state) => ({
+                customPresets: state.customPresets.filter(p => p.id !== id)
+            })),
+            updateCustomPreset: (id, updates) => set((state) => ({
+                customPresets: state.customPresets.map(p => p.id === id ? { ...p, ...updates } : p)
+            })),
+
+            resetSelections: () => set({
+                stylePos: 1,
+                thicknessPos: 4,
+                lengthPos: 3,
+                densityPos: 4,
+            })
         }),
+        {
+            name: 'hair-storage',
+            partialize: (state) => ({
+                stylePos: state.stylePos,
+                thicknessPos: state.thicknessPos,
+                lengthPos: state.lengthPos,
+                densityPos: state.densityPos,
+                theme: state.theme,
+                customPresets: state.customPresets,
+            }),
+            onRehydrateStorage: () => (state) => {
+                state?.setHasHydrated(true);
+            },
+        }
+    )
+);
 
-    // ===== SELECTORS (COMPUTED) =====
-    /**
-     * Calculate estimated hair packs needed
-     * Formula: (style + thickness + density) x length x 0.95
-     */
-    calculatePacks: () => {
-        const state = get();
-        const style = state.styleMap[state.stylePos][1];
-        const thickness = state.thicknessMap[state.thicknessPos][1];
-        const length = state.lengthMap[state.lengthPos][1];
-        const density = state.densityMap[state.densityPos][1];
-        return ((style + thickness + density) * length) * 0.95;
-    },
+/**
+ * useDevStore - The Developer Tooling and Override store.
+ * Isolated from the main user store to allow easy enabling/disabling of dev features.
+ */
+export const useDevStore = create(
+    persist(
+        (set) => ({
+            isEnabled: false, // Global toggle for Dev Kit
+            debugRaycast: false,
+            assets: {}, // Dynamic asset overrides
+            _hasHydrated: false,
 
-    /**
-     * Get current selection labels for display
-     */
-    getSelections: () => {
-        const state = get();
-        return {
-            style: state.styleMap[state.stylePos][0],
-            thickness: state.thicknessMap[state.thicknessPos][0],
-            length: state.lengthMap[state.lengthPos][0],
-            density: state.densityMap[state.densityPos][0],
-        };
-    },
-}));
+            DEV_CONFIG: {
+                headCenterY: 1.25,
+                headRadius: 0.95,
+                torsoCenterY: 0.2,
+                torsoRadius: 1.25,
+                torsoPushOut: 0.5,
+                partingRowMultiplier: 5,
+                partingPointMultiplier: 5,
+                thicknessDensityScale: true,
+            },
+
+            // Actions
+            setIsDevEnabled: (val) => set({ isEnabled: val }),
+            setDebugRaycast: (val) => set({ debugRaycast: val }),
+            setAssetOverride: (slot, url) => set((state) => ({ 
+                assets: { ...state.assets, [slot]: url } 
+            })),
+            resetAssets: () => set({ assets: {} }),
+            updateDevConfig: (key, val) => set((state) => ({
+                DEV_CONFIG: { ...state.DEV_CONFIG, [key]: val }
+            })),
+            setHasHydrated: (state) => set({ _hasHydrated: state }),
+        }),
+        {
+            name: 'hair-dev-storage',
+            onRehydrateStorage: () => (state) => {
+                state?.setHasHydrated(true);
+            },
+        }
+    )
+);
