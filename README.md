@@ -1,22 +1,23 @@
 # Cinna's PAH - Protective Afro-Hairstyle Visualizer & Calculator
 
-This is a Semester 3 HBO-ICT student project at Fontys University of Applied Sciences. The project was inspired by a realization in Semester 1 that technology can simplify "mundane" tasks like planning Afro-textured hairstyles, making them more accessible and efficient.
+This is a Semester 3 HBO-ICT student project at Fontys University of Applied Sciences. The project digitizes experience-based knowledge in Afro-hair care, helping users estimate hair extension requirements through real-time 3D visualization.
 
 ## Tech Stack
 
-- **React 19** - Modern React with latest features
-- **Three.js (R3F)** - React Three Fiber for 3D rendering
-- **Tailwind CSS** - Utility-first CSS framework
-- **Blender** - 3D modeling for custom assets
+- **React 19** - UI Logic & Component Lifecycle
+- **Three.js (React Three Fiber)** - Procedural 3D rendering & InstancedMesh optimization
+- **Zustand** - Decoupled state management (User & Dev stores)
+- **Tailwind CSS v4** - Ergonomic Glassmorphism UI
+- **Blender** - Custom low-poly asset modeling (`custombust.glb`, `boxbraid.glb`)
 
 ## Features
 
-- Real-time 3D head visualization with interactive rotation
-- Procedural hair placement using raycasting and UV texture masking
-- Slider-based parameter adjustment for style, thickness, length, and density
-- Preset gallery for quick style loading
-- Hair pack estimation calculator
-- Responsive design with mobile support
+- **Procedural Hair Engine**: Real-time raycasting and UV-masked spawning for realistic parting.
+- **Dynamic Physics**: Stiffness-biased gravity model for organic braid draping.
+- **Pack Estimator**: Mathematical formula validated against professional stylist benchmarks.
+- **Modular Dev Kit**: Integrated Asset Manager for real-time model hot-swapping and raycast debugging.
+- **Preset CRUD**: Save, edit, and delete custom hairstyle configurations locally.
+- **Responsive Scaling**: Mobile-first design optimized for ≥30 FPS on modern devices (e.g., Pixel 8).
 
 ## Getting Started
 
@@ -28,52 +29,45 @@ This is a Semester 3 HBO-ICT student project at Fontys University of Applied Sci
 ### Installation
 
 ```bash
+git clone https://github.com/OCE-Cinna/hair-calculator-app.git
+cd hair-calculator-app
 npm install
 ```
 
-### Adding 3D Models
+### 3D Model Setup
 
-Place the following files in the `public/models/` directory:
-- `custombust.glb` - The 3D head model
-- `boxbraid.glb` - Braid segment model
-- `boxbraidend.glb` - Braid end cap model
+The application looks for optimized assets in `public/models/`. High-fidelity models are migrated from `src/assets/` during build process:
+- `custombust.glb` (Scalp mesh)
+- `boxbraid.glb` / `boxbraidend.glb` (Box Braids)
+- `twist.glb` / `twistend.glb` (Twists & Locs)
+- `flatbraid.glb` / `flatbraidend.glb` (Knotless)
 
-And ensure `public/scalp_mask.jpeg` exists for UV masking.
+### Scripts
 
-If models are missing, the app will use fallback geometries (sphere for head, cylinders for braids).
+- `npm run dev`: Start local development server.
+- `npm run build`: Generate production-ready bundle with Draco compression.
+- `npm run preview`: Preview production build locally.
 
-### Development
-
-```bash
-npm run dev
-```
-
-### Build
-
-```bash
-npm run build
-```
-
-### Preview
-
-```bash
-npm run preview
-```
-
-## Project Structure
+## Project Architecture
 
 ```
 src/
 ├── components/
-│   ├── Experience.jsx      # Main 3D scene
-│   ├── HeadModel.jsx       # 3D head model component
-│   ├── Sliders.jsx         # Custom slider components
-│   └── ThreeDCanvas.jsx    # Three.js canvas wrapper
+│   ├── Experience.jsx      # 3D Physics Loop & Raycasting Engine
+│   ├── HeadModel.jsx       # Theme-aware scalp mesh component
+│   ├── AssetManager.jsx    # Developer CRUD & Debugging tools
+│   └── Sliders.jsx         # Parametric hairstyle controls
 ├── store/
-│   └── hairStore.js        # Zustand state management
-└── App.jsx                 # Main application component
+│   └── hairStore.js        # Modular Zustand stores (useHairStore, useDevStore)
+└── App.jsx                 # Core layout & Responsive scaling logic
 ```
+
+## Documentation
+
+Detailed technical breakdowns available in project repository:
+- [3D Engine Guide](./3D_ENGINE_GUIDE.md): Math, Raycasting, and Physics details.
+- [Dev Logbook](./DEVLOG_PHASES.md): Phased development journey and commit evidence.
 
 ## License
 
-MIT License
+This project is licensed under **GNU Affero General Public License v3.0 (AGPLv3)**. See [LICENSE](./LICENSE) for details.

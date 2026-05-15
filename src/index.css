@@ -2,89 +2,120 @@
 
 @layer base {
   :root {
+    --font-heading: 'Outfit', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    
     /* Main Layout */
-    --color-app-main: #FDFBF7;
-    --color-brand: #FF6B00;
-    
+    --color-app-main: oklch(98% 0.01 60);
+    /* Very light warm off-white */
+    --color-brand: oklch(73.682% 0.16644 40.061);
+    /* Vibrant, consistent orange */
+
     /* Text Colors */
-    --color-text-base: #111827; /* gray-900 */
-    --color-text-muted: #4B5563; /* gray-600 */
-    --color-text-faint: #6B7280; /* gray-500 */
-    --color-text-faintest: #9CA3AF; /* gray-400 */
-    --color-text-highlight: #1F2937; /* gray-800 */
-    
-    /* Backgrounds */
-    --color-glass: rgba(255, 255, 255, 0.4);
-    --color-glass-menu: rgba(255, 255, 255, 0.95);
-    --color-glass-header: rgba(255, 255, 255, 0.4);
-    --color-glass-footer: rgba(255, 255, 255, 0.5);
-    --color-glass-panel: rgba(255, 255, 255, 0.6);
-    --color-glass-panel-muted: rgba(243, 244, 246, 0.5); /* gray-100/50 */
-    --color-glass-gallery: rgba(255, 255, 255, 0.2);
-    --color-glass-selector: rgba(255, 255, 255, 0.5);
-    --color-glass-hover: rgba(255, 255, 255, 0.5);
-    --color-glass-input: rgba(249, 250, 251, 1); /* gray-50 */
-    
+    --color-text-base: oklch(25% 0.02 20);
+    --color-text-muted: oklch(45% 0.02 20);
+    --color-text-faint: oklch(60% 0.02 20);
+    --color-text-faintest: oklch(75% 0.02 20);
+    --color-text-highlight: oklch(15% 0.02 20);
+
+    /* Backgrounds (Glassmorphism) */
+    --color-glass: oklch(100% 0 0 / 40%);
+    --color-glass-menu: oklch(100% 0 0 / 95%);
+    --color-glass-header: oklch(100% 0 0 / 40%);
+    --color-glass-footer: oklch(100% 0 0 / 50%);
+    --color-glass-panel: oklch(100% 0 0 / 60%);
+    --color-glass-panel-muted: oklch(95% 0.01 20 / 50%);
+    --color-glass-gallery: oklch(100% 0 0 / 20%);
+    --color-glass-selector: oklch(100% 0 0 / 50%);
+    --color-glass-hover: oklch(100% 0 0 / 50%);
+    --color-glass-input: oklch(98% 0 0 / 100%);
+
     /* Borders */
-    --color-border-glass: rgba(255, 255, 255, 0.4);
-    --color-border-glass-strong: rgba(255, 255, 255, 0.6);
-    --color-border-divider: rgba(209, 213, 219, 1); /* gray-300 */
-    --color-border-divider-faint: rgba(229, 231, 235, 1); /* gray-200 */
-    
+    --color-border-glass: oklch(100% 0 0 / 40%);
+    --color-border-glass-strong: oklch(100% 0 0 / 60%);
+    --color-border-divider: oklch(85% 0.01 20);
+    --color-border-divider-faint: oklch(92% 0.01 20);
+
     /* Effects */
-    --shadow-glass: 0 20px 50px -12px rgba(0,0,0,0.08);
-    --shadow-panel: -5px 0 20px rgba(0,0,0,0.03);
-    --color-ring-offset: #FFFFFF;
-    --color-canvas-bg: #FFFFFF;
-    --shadow-brand-subtle: 0 4px 12px rgba(255, 107, 0, 0.2);
+    --shadow-glass: 0 20px 50px -12px oklch(0% 0 0 / 8%);
+    --shadow-panel: -5px 0 20px oklch(0% 0 0 / 3%);
+    --color-ring-offset: oklch(100% 0 0);
+    --color-canvas-bg: oklch(100% 0 0);
+    --shadow-brand-subtle: 0 4px 12px oklch(65% 0.25 50 / 20%);
 
     /* Background Orbs */
     --orb-blend: multiply;
     --orb-opacity-low: 0.1;
     --orb-opacity-mid: 0.15;
+
+    /* 3D Assets */
+    --color-skin-fallback: #774f34;
+    --color-hair-default: #1a1a1a;
   }
 
   .dark {
     /* Main Layout */
-    --color-app-main: #1A100C;
-    --color-brand: #FF6B00;
-    
+    --color-app-main: oklch(15% 0.02 30);
+    /* Deep rich brown-black */
+    --color-brand: oklch(73.682% 0.16644 40.061);
+
     /* Text Colors */
-    --color-text-base: #FFFFFF;
-    --color-text-muted: rgba(255, 255, 255, 0.7); /* white/70 */
-    --color-text-faint: rgba(255, 255, 255, 0.5); /* white/50 */
-    --color-text-faintest: rgba(255, 255, 255, 0.4); /* white/40 */
-    --color-text-highlight: rgba(255, 255, 255, 0.9); /* white/90 */
-    
+    --color-text-base: oklch(100% 0 0);
+    --color-text-muted: oklch(100% 0 0 / 70%);
+    --color-text-faint: oklch(100% 0 0 / 50%);
+    --color-text-faintest: oklch(100% 0 0 / 40%);
+    --color-text-highlight: oklch(100% 0 0 / 90%);
+
     /* Backgrounds */
-    --color-glass: rgba(0, 0, 0, 0.4);
-    --color-glass-menu: rgba(26, 16, 12, 0.95); /* #1A100C/95 */
-    --color-glass-header: rgba(255, 255, 255, 0.05); /* white/5 */
-    --color-glass-footer: rgba(0, 0, 0, 0.6);
-    --color-glass-panel: rgba(255, 255, 255, 0.05);
-    --color-glass-panel-muted: rgba(0, 0, 0, 0.2);
-    --color-glass-gallery: rgba(255, 255, 255, 0.05);
-    --color-glass-selector: rgba(0, 0, 0, 0.4);
-    --color-glass-hover: rgba(255, 255, 255, 0.1); /* white/10 */
-    --color-glass-input: rgba(0, 0, 0, 0.4);
-    
+    --color-glass: oklch(0% 0 0 / 40%);
+    --color-glass-menu: oklch(15% 0.02 30 / 95%);
+    --color-glass-header: oklch(100% 0 0 / 5%);
+    --color-glass-footer: oklch(0% 0 0 / 60%);
+    --color-glass-panel: oklch(100% 0 0 / 5%);
+    --color-glass-panel-muted: oklch(0% 0 0 / 20%);
+    --color-glass-gallery: oklch(100% 0 0 / 5%);
+    --color-glass-selector: oklch(0% 0 0 / 40%);
+    --color-glass-hover: oklch(100% 0 0 / 10%);
+    --color-glass-input: oklch(0% 0 0 / 40%);
+
     /* Borders */
-    --color-border-glass: rgba(255, 255, 255, 0.1); /* white/10 */
-    --color-border-glass-strong: rgba(255, 255, 255, 0.1); /* white/10 */
-    --color-border-divider: rgba(255, 255, 255, 0.1); /* white/10 */
-    --color-border-divider-faint: rgba(255, 255, 255, 0.05); /* white/5 */
-    
+    --color-border-glass: oklch(100% 0 0 / 10%);
+    --color-border-glass-strong: oklch(100% 0 0 / 15%);
+    --color-border-divider: oklch(100% 0 0 / 10%);
+    --color-border-divider-faint: oklch(100% 0 0 / 5%);
+
     /* Effects */
-    --shadow-glass: 0 20px 50px -12px rgba(0,0,0,0.4);
-    --shadow-panel: -5px 0 20px rgba(0,0,0,0.15);
-    --color-ring-offset: rgba(0,0,0,0.5);
-    --color-canvas-bg: #F3F4F6; /* Light Grey */
-    --shadow-brand-subtle: 0 4px 12px rgba(255, 107, 0, 0.3);
+    --shadow-glass: 0 20px 50px -12px oklch(0% 0 0 / 40%);
+    --shadow-panel: -5px 0 20px oklch(0% 0 0 / 15%);
+    --color-ring-offset: oklch(0% 0 0 / 50%);
+    --color-canvas-bg: oklch(25% 0.01 20);
+    /* Slightly lighter for 3D depth */
+    --shadow-brand-subtle: 0 4px 12px oklch(65% 0.25 50 / 30%);
 
     /* Background Orbs */
     --orb-blend: screen;
     --orb-opacity-low: 0.2;
     --orb-opacity-mid: 0.3;
+
+    /* 3D Assets */
+    --color-skin-fallback: #774f34;
+    --color-hair-default: #1a1a1a;
+  }
+  body {
+    font-family: var(--font-body);
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
+    position: fixed;
+  }
+
+  html {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
   }
 }
 
@@ -118,4 +149,19 @@
   --mix-blend-orb: var(--orb-blend);
   --opacity-orb-low: var(--orb-opacity-low);
   --opacity-orb-mid: var(--orb-opacity-mid);
+  --color-skin-fallback: var(--color-skin-fallback);
+  --color-hair-default: var(--color-hair-default);
+}
+
+@layer utilities {
+  /* High performance glass for mobile - reduced blur intensity */
+  .glass-responsive {
+    backdrop-filter: blur(40px);
+  }
+
+  @media (max-width: 768px) {
+    .glass-responsive {
+      backdrop-filter: blur(12px);
+    }
+  }
 }

@@ -7,6 +7,8 @@ import { PresetGallery } from './PresetGallery';
 vi.mock('lucide-react', () => ({
     ChevronLeft: () => <div data-testid="left-arrow" />,
     ChevronRight: () => <div data-testid="right-arrow" />,
+    ChevronDown: () => <div data-testid="down-arrow" />,
+    ChevronUp: () => <div data-testid="up-arrow" />,
 }));
 
 const mockPresets = [
@@ -31,8 +33,7 @@ describe('PresetGallery Integration', () => {
             />
         );
 
-        // Find and click the preset card
-        const presetCard = screen.getByRole('button', { name: /Load preset: Hip Locs/i });
+        const presetCard = screen.getByText(/Hip Locs/i);
         fireEvent.click(presetCard);
 
         // Check if callback was called with the preset and its parsed data

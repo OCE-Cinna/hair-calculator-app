@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/react';
 import { AssetManager } from './AssetManager';
-import { useHairStore } from '../store/hairStore';
+import { useHairStore, useDevStore } from '../store/hairStore';
 
 // Mock the Zustand store
 vi.mock('../store/hairStore', () => ({
     useHairStore: vi.fn(),
+    useDevStore: vi.fn(),
 }));
 
 describe('AssetManager JPEG Conversion', () => {
@@ -13,6 +14,13 @@ describe('AssetManager JPEG Conversion', () => {
 
     beforeEach(() => {
         mockSetAssetOverride = vi.fn();
+        useDevStore.mockReturnValue({
+            isEnabled: true,
+            setIsDevEnabled: vi.fn(),
+            assets: {},
+            setAssetOverride: mockSetAssetOverride,
+            resetAssets: vi.fn(),
+        });
         useHairStore.mockReturnValue({
             assets: {},
             setAssetOverride: mockSetAssetOverride,
@@ -20,6 +28,7 @@ describe('AssetManager JPEG Conversion', () => {
             debugRaycast: false,
             setDebugRaycast: vi.fn(),
             addCustomPreset: vi.fn(),
+            customPresets: [],
         });
 
         // Mock URL.createObjectURL

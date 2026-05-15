@@ -6,37 +6,14 @@ import { useHairStore } from './store/hairStore';
 import { calculateHairPacks } from './utils/calculator';
 
 // Mock dependencies that are hard to test in JSDOM or involve 3D
-vi.mock('./store/hairStore', () => ({
-    useHairStore: vi.fn(),
-}));
-
-vi.mock('./components/Experience', () => ({
-    Experience: () => <div data-testid="mock-experience" />,
-}));
-
-vi.mock('./components/AssetManager', () => ({
-    AssetManager: () => <div data-testid="mock-asset-manager" />,
-}));
-
-vi.mock('./components/PresetGallery', () => ({
-    PresetGallery: () => <div data-testid="mock-preset-gallery" />,
-}));
-
-vi.mock('./utils/calculator', () => ({
-    calculateHairPacks: vi.fn(),
-}));
-
-describe('App Component', () => {
-    const mockSetStylePos = vi.fn();
-    const mockSetThicknessPos = vi.fn();
-
-    const mockStoreState = {
+vi.mock('./store/hairStore', () => {
+    const mockState = {
         stylePos: 1,
         thicknessPos: 4,
         lengthPos: 4,
         densityPos: 4,
-        setStylePos: mockSetStylePos,
-        setThicknessPos: mockSetThicknessPos,
+        setStylePos: vi.fn(),
+        setThicknessPos: vi.fn(),
         setLengthPos: vi.fn(),
         setDensityPos: vi.fn(),
         STYLE_MAP: { 1: ['Knotless Braids', 1.0], 2: ['Box Braids', 1.1] },
@@ -54,18 +31,44 @@ describe('App Component', () => {
         },
         customPresets: [],
         assets: {},
+        theme: 'dark',
+        _hasHydrated: true,
+        setTheme: vi.fn(),
     };
+    return {
+        useHairStore: vi.fn((selector) => selector ? selector(mockState) : mockState),
+        useDevStore: vi.fn(() => ({ assets: {}, isEnabled: false, setHasHydrated: vi.fn() })),
+    };
+});
 
+vi.mock('zustand/react/shallow', () => ({
+    useShallow: (fn) => fn,
+}));
+
+vi.mock('./components/Experience', () => ({
+    Experience: () => <div data-testid="mock-experience" />,
+}));
+
+vi.mock('./components/AssetManager', () => ({
+    AssetManager: () => <div data-testid="mock-asset-manager" />,
+}));
+
+vi.mock('./components/PresetGallery', () => ({
+    PresetGallery: () => <div data-testid="mock-preset-gallery" />,
+}));
+
+vi.mock('./utils/calculator', () => ({
+    calculateHairPacks: vi.fn(() => 5.25),
+}));
+
+describe('App Component', () => {
     beforeEach(() => {
         vi.clearAllMocks();
-        // Mock selector behavior: returns specific values or the whole state depending on call
-        useHairStore.mockImplementation((selector) => selector(mockStoreState));
-        calculateHairPacks.mockReturnValue(5.25);
     });
 
     it('renders the main layout and sub-components', () => {
         render(<App />);
-        expect(screen.getByText("Cinna's PAH")).toBeDefined();
+        expect(screen.getAllByText("Cinna's PAH").length).toBeGreaterThan(0);
         expect(screen.getByTestId('mock-experience')).toBeDefined();
         expect(screen.getByTestId('mock-preset-gallery')).toBeDefined();
     });
@@ -74,21 +77,19 @@ describe('App Component', () => {
         render(<App />);
 
         // Open menu
-        const menuBtn = screen.getByLabelText('Open menu');
+        const menuBtn = screen.getByText('MENU');
         fireEvent.click(menuBtn);
-        expect(screen.getByText('About this project')).toBeDefined();
+        expect(screen.getAllByText('About this project').length).toBeGreaterThan(0);
 
         // Close menu
         const closeBtn = screen.getByLabelText('Close menu');
         fireEvent.click(closeBtn);
-        // Menu should have translate-x-full or be hidden (timing depending on implementation)
     });
 
     it('displays the correct calculation result based on modifiers', () => {
         render(<App />);
-        // 5.25 from mock calculateHairPacks
         expect(screen.getByText('Est: 5.25 packs')).toBeDefined();
-        expect(screen.getByText('Rounded: 5 packs')).toBeDefined();
+        expect(screen.getByText('5')).toBeDefined();
     });
 
     it('updates style when a StyleSelector option is clicked', () => {
@@ -96,7 +97,8 @@ describe('App Component', () => {
         const boxBraidsBtn = screen.getByText('Box Braids');
         fireEvent.click(boxBraidsBtn);
 
-        expect(mockSetStylePos).toHaveBeenCalledWith(2);
+        const { setStylePos } = useHairStore();
+        expect(setStylePos).toHaveBeenCalledWith(2);
     });
 
     it('triggers thickness update when the RangeSlider is changed', () => {
@@ -107,7 +109,7 @@ describe('App Component', () => {
 
         fireEvent.change(thicknessSlider, { target: { value: '6' } });
 
-        // handleSlider wrapper converts to Number and calls setter
-        expect(mockSetThicknessPos).toHaveBeenCalledWith(6);
+        const { setThicknessPos } = useHairStore();
+        expect(setThicknessPos).toHaveBeenCalledWith(6);
     });
 });

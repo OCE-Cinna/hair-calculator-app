@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, Sparkles, Github, Info, Sun, Moon, Monitor, ChevronDown, ChevronUp } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import './App.css';
 import { useHairStore } from './store/hairStore';
+import { useShallow } from 'zustand/react/shallow';
 import { Experience } from './components/Experience';
 import { calculateHairPacks } from './utils/calculator';
 import { AssetManager } from './components/AssetManager';
@@ -19,7 +21,7 @@ const BurgerMenu = ({ isOpen, onClose }) => (
       onClick={onClose}
     />
     <div
-      className={`fixed top-0 left-0 z-50 h-full w-80 bg-glass-menu backdrop-blur-2xl border-r border-divider-faint shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'
+      className={`fixed top-0 left-0 z-50 h-full w-80 bg-glass-menu glass-responsive border-r border-divider-faint shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
     >
       <div className="flex items-center justify-between px-6 py-5 border-b border-divider-faint bg-glass-panel-muted transition-colors">
@@ -123,73 +125,126 @@ const ThemeSwitcher = () => {
 // ============================================================
 // UI COMPONENTS
 // ============================================================
-function StyleSelector({ value, onChange, map }) {
+// ============================================================
+// UI COMPONENTS (Compound Component Pattern)
+// ============================================================
+const ControlCard = ({ title, children, className = '' }) => (
+  <motion.div 
+    initial={{ opacity: 0, x: 20 }}
+    animate={{ opacity: 1, x: 0 }}
+    transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+    className={`p-6 sm:p-8 flex flex-col space-y-6 bg-glass-panel glass-responsive border border-border-glass rounded-3xl shadow-glass transition-all duration-500 ${className}`}
+  >
+    {title && (
+      <h2 className="text-xl sm:text-2xl font-black text-text-base mb-2 transition-colors">
+        {title}
+      </h2>
+    )}
+    {children}
+  </motion.div>
+);
+
+ControlCard.Section = ({ title, children, className = '' }) => (
+  <motion.div 
+    initial={{ opacity: 0, y: 10 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true }}
+    className={`mb-8 w-full ${className}`}
+  >
+    {title && (
+      <label className="text-xl font-bold text-text-highlight mb-4 block transition-colors">
+        {title}
+      </label>
+    )}
+    {children}
+  </motion.div>
+);
+
+ControlCard.StyleSelector = ({ value, onChange, map }) => {
   const options = Object.keys(map).map(key => ({ id: Number(key), label: map[key][0] }));
+  
+  const handleSelect = (id) => {
+    onChange(id);
+    if (window.navigator.vibrate) window.navigator.vibrate(5);
+  };
 
   return (
-    <div className="mb-10 border-b border-divider pb-6">
-      <h3 className="text-xl font-bold text-text-highlight mb-4 transition-colors">Braid Style</h3>
-      <div className="flex justify-between bg-glass-selector rounded-lg p-1 shadow-inner gap-1 border border-divider-faint transition-colors">
-        {options.map(opt => (
-          <button
-            key={opt.id}
-            type="button"
-            onClick={() => onChange(opt.id)}
-            className={`grow py-3 px-1.5 text-center font-bold text-xs rounded-md cursor-pointer transition-all duration-300 whitespace-nowrap ${value === opt.id 
-                ? 'bg-brand text-white shadow-brand-subtle' 
-                : 'text-text-faint bg-transparent border-none hover:text-text-highlight hover:bg-glass-hover'
-              }`}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
+    <div className="flex justify-between bg-glass-selector rounded-lg p-1 shadow-inner gap-1 border border-divider-faint transition-colors">
+      {options.map(opt => (
+        <motion.button
+          key={opt.id}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          type="button"
+          onClick={() => handleSelect(opt.id)}
+          className={`grow py-4 px-1.5 text-center font-bold text-xs rounded-md cursor-pointer transition-all duration-300 whitespace-nowrap ${value === opt.id
+            ? 'bg-brand text-white shadow-brand-subtle'
+            : 'text-text-faint bg-transparent border-none hover:text-text-highlight hover:bg-glass-hover'
+            }`}
+        >
+          {opt.label}
+        </motion.button>
+      ))}
     </div>
   );
-}
+};
 
-function RangeSlider({ id, min, max, step, value, onChange, map, labelText, buttonLabels }) {
+ControlCard.Slider = ({ id, min, max, step, value, onChange, map, buttonLabels }) => {
   const labels = Object.keys(map).map(k => map[Number(k)][0]);
   const safeValue = Math.min(Math.max(value, min), max);
   const percentage = ((safeValue - min) / (max - min)) * 100;
 
-  const decrement = () => onChange({ target: { value: Math.max(min, value - step) } });
-  const increment = () => onChange({ target: { value: Math.min(max, value + step) } });
+  const handleVibrate = () => {
+    if (window.navigator.vibrate) window.navigator.vibrate(2);
+  };
+
+  const decrement = () => {
+    onChange({ target: { value: Math.max(min, value - step) } });
+    handleVibrate();
+  };
+  const increment = () => {
+    onChange({ target: { value: Math.min(max, value + step) } });
+    handleVibrate();
+  };
 
   const currentValueLabel = map[value]?.[0] || map[min]?.[0] || 'Unknown';
 
   return (
-    <div className="mb-8 w-full">
+    <div className="w-full">
       <div className="flex justify-between items-center mb-4">
-        <label htmlFor={id} className="text-xl font-bold text-text-highlight transition-colors">
-          {labelText}
-        </label>
-        <span className="text-xl font-black text-brand ml-3 drop-shadow-sm">{currentValueLabel}</span>
+        <span className="text-xl font-black text-brand drop-shadow-sm">{currentValueLabel}</span>
         {buttonLabels && (
           <div className="flex space-x-2">
-            <button
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               type="button"
               onClick={decrement}
-              className="px-4 py-2 bg-glass-hover backdrop-blur-sm text-text-highlight border border-divider rounded-lg shadow-sm transition duration-200 cursor-pointer hover:bg-glass-panel hover:border-border-glass-strong font-medium"
+              className="px-4 py-3 bg-glass-hover backdrop-blur-sm text-text-highlight border border-divider rounded-lg shadow-sm transition duration-200 cursor-pointer hover:bg-glass-panel hover:border-border-glass-strong font-medium min-w-[48px]"
+              aria-label={`Decrease ${id}`}
             >
               {buttonLabels[0]}
-            </button>
-            <button
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               type="button"
               onClick={increment}
-              className="px-4 py-2 bg-glass-hover backdrop-blur-sm text-text-highlight border border-divider rounded-lg shadow-sm transition duration-200 cursor-pointer hover:bg-glass-panel hover:border-border-glass-strong font-medium"
+              className="px-4 py-3 bg-glass-hover backdrop-blur-sm text-text-highlight border border-divider rounded-lg shadow-sm transition duration-200 cursor-pointer hover:bg-glass-panel hover:border-border-glass-strong font-medium min-w-[48px]"
+              aria-label={`Increase ${id}`}
             >
               {buttonLabels[1]}
-            </button>
+            </motion.button>
           </div>
         )}
       </div>
 
-      <div className="relative w-full h-8">
+      <div className="relative w-full h-10">
         <div className="absolute top-1/2 left-0 right-0 h-2 bg-glass-input border border-divider-faint transform -translate-y-1/2 rounded-full transition-colors" />
-        <div
-          className="absolute top-1/2 left-0 h-2 bg-brand shadow-[0_2px_8px_rgba(255,107,0,0.4)] transform -translate-y-1/2 rounded-full transition-all duration-100 ease-out"
+        <motion.div
+          className="absolute top-1/2 left-0 h-2 bg-brand shadow-[0_2px_8_rgba(255,107,0,0.4)] transform -translate-y-1/2 rounded-full transition-all duration-100 ease-out"
           style={{ width: `${percentage}%` }}
+          animate={{ width: `${percentage}%` }}
         />
         <input
           type="range"
@@ -198,16 +253,21 @@ function RangeSlider({ id, min, max, step, value, onChange, map, labelText, butt
           max={max}
           step={step}
           value={value}
-          onChange={onChange}
+          onChange={(e) => {
+            onChange(e);
+            handleVibrate();
+          }}
+          aria-label={id}
+          aria-valuetext={currentValueLabel}
           required
-          className="absolute appearance-none w-full h-8 bg-transparent cursor-grab z-10
+          className="absolute appearance-none w-full h-10 bg-transparent cursor-grab z-10
             [&::-webkit-slider-runnable-track]:h-0 [&::-moz-range-track]:h-0
-            [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-6
-            [&::-webkit-slider-thumb]:w-6 [&::-webkit-slider-thumb]:rounded-full
-            [&::-webkit-slider-thumb]:bg-[#FF6B00] [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white
+            [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-8
+            [&::-webkit-slider-thumb]:w-8 [&::-webkit-slider-thumb]:rounded-full
+            [&::-webkit-slider-thumb]:bg-brand [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white
             [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(255,107,0,0.5)] [&::-webkit-slider-thumb]:mt-1
-            [&::-moz-range-thumb]:h-6 [&::-moz-range-thumb]:w-6
-            [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-[#FF6B00]
+            [&::-moz-range-thumb]:h-8 [&::-moz-range-thumb]:w-8
+            [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-brand
             [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white
             [&::-moz-range-thumb]:shadow-[0_0_10px_rgba(255,107,0,0.5)] active:cursor-grabbing"
         />
@@ -222,7 +282,7 @@ function RangeSlider({ id, min, max, step, value, onChange, map, labelText, butt
       </div>
     </div>
   );
-}
+};
 
 // ============================================================
 // APP CONTENT
@@ -234,14 +294,20 @@ function AppContent() {
     lengthPos, setLengthPos,
     densityPos, setDensityPos,
     STYLE_MAP, THICKNESS_MAP, LENGTH_MAP, DENSITY_MAP,
-  } = useHairStore(state => ({
-    stylePos: state.stylePos, setStylePos: state.setStylePos,
-    thicknessPos: state.thicknessPos, setThicknessPos: state.setThicknessPos,
-    lengthPos: state.lengthPos, setLengthPos: state.setLengthPos,
-    densityPos: state.densityPos, setDensityPos: state.setDensityPos,
-    STYLE_MAP: state.STYLE_MAP, THICKNESS_MAP: state.THICKNESS_MAP,
-    LENGTH_MAP: state.LENGTH_MAP, DENSITY_MAP: state.DENSITY_MAP,
-  }));
+  } = useHairStore(useShallow((state) => ({
+    stylePos: state.stylePos,
+    setStylePos: state.setStylePos,
+    thicknessPos: state.thicknessPos,
+    setThicknessPos: state.setThicknessPos,
+    lengthPos: state.lengthPos,
+    setLengthPos: state.setLengthPos,
+    densityPos: state.densityPos,
+    setDensityPos: state.setDensityPos,
+    STYLE_MAP: state.STYLE_MAP,
+    THICKNESS_MAP: state.THICKNESS_MAP,
+    LENGTH_MAP: state.LENGTH_MAP,
+    DENSITY_MAP: state.DENSITY_MAP,
+  })));
 
   const styleVal = STYLE_MAP[stylePos]?.[1] || 1.0;
   const thicknessVal = THICKNESS_MAP[thicknessPos]?.[1] || 1.0;
@@ -254,63 +320,85 @@ function AppContent() {
   return (
     <div className="flex flex-col lg:flex-row p-6 gap-6 items-stretch">
       {/* 3D Viewport - Floating Card */}
-      <div className="flex-1 min-h-[500px] lg:min-h-0 relative bg-glass-panel backdrop-blur-3xl rounded-3xl overflow-hidden border border-border-glass shadow-glass transition-all duration-500">
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.8, delay: 0.2 }}
+        className="flex-1 min-h-[500px] lg:min-h-0 relative bg-glass-panel glass-responsive rounded-3xl overflow-hidden border border-border-glass shadow-glass transition-all duration-500"
+      >
         <Experience />
-      </div>
+      </motion.div>
 
-      {/* Controls panel - Floating Card */}
-      <div className="flex-1 p-8 flex flex-col space-y-4 bg-glass-panel backdrop-blur-3xl border border-border-glass rounded-3xl shadow-glass transition-all duration-500">
-        <h2 className="text-2xl font-black text-text-base mb-6 transition-colors">
-          Hair Customization
-        </h2>
-        <StyleSelector value={stylePos} onChange={setStylePos} map={STYLE_MAP} />
+      {/* Controls panel - Compound Components */}
+      <ControlCard title="Hair Customization" className="flex-1 lg:max-h-[850px] overflow-y-auto">
+        <ControlCard.Section title="Braid Style">
+          <ControlCard.StyleSelector value={stylePos} onChange={setStylePos} map={STYLE_MAP} />
+        </ControlCard.Section>
 
-        <RangeSlider
-          id="thickness"
-          min={1}
-          max={Object.keys(THICKNESS_MAP).length}
-          step={1}
-          value={thicknessPos}
-          onChange={handleSlider(setThicknessPos)}
-          map={THICKNESS_MAP}
-          labelText="Braid thickness"
-          buttonLabels={['Smaller', 'Larger']}
-        />
-        <RangeSlider
-          id="length"
-          min={1}
-          max={Object.keys(LENGTH_MAP).length}
-          step={1}
-          value={lengthPos}
-          onChange={handleSlider(setLengthPos)}
-          map={LENGTH_MAP}
-          labelText="Braid length"
-          buttonLabels={['Shorter', 'Longer']}
-        />
-        <RangeSlider
-          id="density"
-          min={1}
-          max={Object.keys(DENSITY_MAP).length}
-          step={1}
-          value={densityPos}
-          onChange={handleSlider(setDensityPos)}
-          map={DENSITY_MAP}
-          labelText="Braid density"
-          buttonLabels={['Lower', 'Higher']}
-        />
+        <ControlCard.Section title="Braid thickness">
+          <ControlCard.Slider
+            id="thickness"
+            min={1}
+            max={Object.keys(THICKNESS_MAP).length}
+            step={1}
+            value={thicknessPos}
+            onChange={handleSlider(setThicknessPos)}
+            map={THICKNESS_MAP}
+            buttonLabels={['Smaller', 'Larger']}
+          />
+        </ControlCard.Section>
 
-        <div className="pt-6 border-t border-divider text-text-muted mt-4 flex justify-between items-center bg-glass-panel-muted p-4 rounded-xl border border-divider-faint transition-colors shadow-sm">
+        <ControlCard.Section title="Braid length">
+          <ControlCard.Slider
+            id="length"
+            min={1}
+            max={Object.keys(LENGTH_MAP).length}
+            step={1}
+            value={lengthPos}
+            onChange={handleSlider(setLengthPos)}
+            map={LENGTH_MAP}
+            buttonLabels={['Shorter', 'Longer']}
+          />
+        </ControlCard.Section>
+
+        <ControlCard.Section title="Braid density">
+          <ControlCard.Slider
+            id="density"
+            min={1}
+            max={Object.keys(DENSITY_MAP).length}
+            step={1}
+            value={densityPos}
+            onChange={handleSlider(setDensityPos)}
+            map={DENSITY_MAP}
+            buttonLabels={['Lower', 'Higher']}
+          />
+        </ControlCard.Section>
+
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="pt-4 sm:pt-6 border-t border-divider text-text-muted mt-2 sm:mt-4 flex justify-between items-center bg-glass-panel-muted p-3 sm:p-4 rounded-xl border border-divider-faint transition-colors shadow-sm"
+        >
           <div>
             <h3 className="text-lg font-bold mb-1">Estimated Hair Packs</h3>
             <p className="text-sm text-text-faint font-medium">Est: {packsResult.toFixed(2)} packs</p>
           </div>
           <div className="text-right">
-            <p className="text-5xl font-black text-brand drop-shadow-sm">
-              {Math.round(packsResult)} <span className="text-xl font-bold text-text-muted">packs</span>
-            </p>
+            <AnimatePresence mode="wait">
+              <motion.p 
+                key={Math.round(packsResult)}
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 1.2, opacity: 0 }}
+                className="text-3xl sm:text-5xl font-black text-brand drop-shadow-sm"
+              >
+                {Math.round(packsResult)} <span className="text-sm sm:text-xl font-bold text-text-muted">packs</span>
+              </motion.p>
+            </AnimatePresence>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </ControlCard>
     </div>
   );
 }
@@ -322,13 +410,23 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activePresetId, setActivePresetId] = useState(null);
   const [galleryVisible, setGalleryVisible] = useState(true);
-  const { customPresets, setStylePos, setThicknessPos, setLengthPos, setDensityPos, theme } = useHairStore();
+  const { customPresets, setStylePos, setThicknessPos, setLengthPos, setDensityPos, theme, _hasHydrated } = useHairStore(useShallow(state => ({
+    customPresets: state.customPresets,
+    setStylePos: state.setStylePos,
+    setThicknessPos: state.setThicknessPos,
+    setLengthPos: state.setLengthPos,
+    setDensityPos: state.setDensityPos,
+    theme: state.theme,
+    _hasHydrated: state._hasHydrated
+  })));
 
   useEffect(() => {
     const root = window.document.documentElement;
     const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
     root.classList.toggle('dark', isDark);
   }, [theme]);
+
+  if (!_hasHydrated) return null;
 
   const allPresets = [...INITIAL_PRESETS, ...(customPresets || [])].map(p => ({
     ...p,
@@ -353,8 +451,8 @@ export default function App() {
       <div className="bg-app-main min-h-screen p-4 sm:p-8 flex justify-center items-start font-sans relative overflow-hidden transition-colors duration-500">
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
           <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-brand rounded-full mix-blend-orb filter blur-[120px] opacity-orb-low" />
-          <div className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] bg-[#A0522D] rounded-full mix-blend-orb filter blur-[150px] opacity-orb-mid" />
-          <div className="absolute top-[40%] left-[30%] w-[40vw] h-[40vw] bg-[#DAA520] rounded-full mix-blend-orb filter blur-[100px] opacity-orb-low" />
+          <div className="absolute bottom-[-20%] right-[-10%] w-[60vw] h-[60vw] bg-[var(--color-skin-fallback)] rounded-full mix-blend-orb filter blur-[150px] opacity-orb-mid" />
+          <div className="absolute top-[40%] left-[30%] w-[40vw] h-[40vw] bg-[var(--color-brand)] rounded-full mix-blend-orb filter blur-[100px] opacity-orb-low" />
         </div>
 
         <div className="relative z-10 max-w-7xl w-full my-4 flex flex-col transition-all duration-500">
@@ -367,17 +465,16 @@ export default function App() {
             </button>
             <div className="text-center flex-1">
               <span className="text-text-base font-black text-2xl leading-tight tracking-tight drop-shadow-sm transition-colors">Cinna's PAH</span>
-              <br />
-              <span className="text-brand font-bold text-xs tracking-widest uppercase opacity-90 drop-shadow-sm">Protective Afro-Hairstyle Visualizer</span>
+              <span className="text-brand font-bold text-xs tracking-widest uppercase opacity-90 drop-shadow-sm block mt-1">Protective Afro-Hairstyle Visualizer</span>
             </div>
             <ThemeSwitcher />
           </header>
 
           <div className="bg-glass backdrop-blur-2xl border border-border-glass rounded-3xl shadow-glass mb-4 overflow-hidden">
-            <PresetGallery 
-              presets={allPresets} 
-              onSelectPreset={handleSelectPreset} 
-              activePresetId={activePresetId} 
+            <PresetGallery
+              presets={allPresets}
+              onSelectPreset={handleSelectPreset}
+              activePresetId={activePresetId}
               isVisible={galleryVisible}
               onToggle={() => setGalleryVisible(!galleryVisible)}
             />

@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
-import { useHairStore } from '../store/hairStore';
-import { parsePresetFilename } from '../constants/presets';
-import { Settings, RefreshCcw, FileUp, ShieldAlert, Plus, Image as ImageIcon } from 'lucide-react';
+import { useHairStore, useDevStore } from '../store/hairStore';
+import { Settings, RefreshCcw, FileUp, ShieldAlert, Plus, Image as ImageIcon, Trash2, Edit3, Save } from 'lucide-react';
 
 export function AssetManager() {
     const [isOpen, setIsOpen] = useState(false);
     const [presetName, setPresetName] = useState('');
+    const [editingId, setEditingId] = useState(null);
+    
     const store = useHairStore();
-    const { assets, setAssetOverride, resetAssets, debugRaycast, setDebugRaycast, addCustomPreset } = store;
+    const { customPresets, addCustomPreset, deleteCustomPreset, updateCustomPreset } = store;
+    
+    const devStore = useDevStore();
+    const { isEnabled, setIsDevEnabled, assets, setAssetOverride, resetAssets, debugRaycast, setDebugRaycast } = devStore;
 
     const convertToJpeg = (file, maxWidth = 512, maxHeight = 512) => {
         return new Promise((resolve) => {
@@ -62,15 +66,20 @@ export function AssetManager() {
 
     const saveCurrentAsPreset = async () => {
         if (!presetName) return alert('Enter a preset name');
-        const id = presetName.toLowerCase().replace(/\s+/g, '_');
         
-        // Get current labels for display
+        if (editingId) {
+            updateCustomPreset(editingId, { label: presetName });
+            setEditingId(null);
+            setPresetName('');
+            return;
+        }
+
+        const id = Date.now().toString(); // Use timestamp for unique ID
         const lengthLabel = store.LENGTH_MAP[store.lengthPos][0];
         const thicknessLabel = store.THICKNESS_MAP[store.thicknessPos][0];
         const styleLabel = store.STYLE_MAP[store.stylePos][0];
         
-        // Construct human-readable labels
-        const label = `${lengthLabel.split(' ')[0]} ${styleLabel}`;
+        const label = presetName;
         const sublabel = `${thicknessLabel} · ${lengthLabel}`;
 
         const newPreset = {
@@ -89,21 +98,54 @@ export function AssetManager() {
         setAssetOverride('temp_preset_img', null);
     };
 
+    const handleEdit = (preset) => {
+        setEditingId(preset.id);
+        setPresetName(preset.label);
+    };
+
+    if (!isEnabled && !isOpen) {
+        return (
+            <div className="fixed bottom-6 right-6 z-[100]">
+                 <button 
+                    onClick={() => setIsOpen(true)} 
+                    className="p-4 bg-glass glass-responsive border border-divider-faint text-text-muted rounded-full shadow-lg hover:scale-105 active:scale-95 transition-all opacity-40 hover:opacity-100"
+                    title="Open Dev Kit"
+                >
+                    <Settings className="h-6 w-6" />
+                </button>
+            </div>
+        );
+    }
+
     return (
         <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end">
             <div className={`
-                bg-glass-menu backdrop-blur-3xl border border-divider-faint rounded-3xl shadow-glass w-80 p-6 mb-4 max-h-[80vh] overflow-y-auto 
+                bg-glass-menu glass-responsive border border-divider-faint rounded-3xl shadow-glass w-80 p-6 mb-4 max-h-[80vh] overflow-y-auto 
                 transition-all duration-300 ease-in-out origin-bottom-right
                 ${isOpen ? 'scale-100 opacity-100 translate-y-0' : 'scale-95 opacity-0 translate-y-10 pointer-events-none'}
             `}>
                 <div className="flex items-center justify-between mb-6">
-                    <span className="font-bold text-text-base flex items-center gap-2 transition-colors">
+                    <span className="font-bold text-text-base flex items-center gap-2">
                         <ShieldAlert className="h-4 w-4 text-brand" /> Dev Kit
                     </span>
-                    <button onClick={resetAssets} className="text-text-faintest hover:text-brand transition-colors"><RefreshCcw className="h-4 w-4" /></button>
+                    <div className="flex items-center gap-2">
+                        <button onClick={resetAssets} className="text-text-faintest hover:text-brand transition-colors"><RefreshCcw className="h-4 w-4" /></button>
+                        <button onClick={() => setIsOpen(false)} className="text-text-faintest hover:text-text-base transition-colors text-xs font-bold px-2 py-1 bg-glass-hover rounded-lg">Close</button>
+                    </div>
                 </div>
 
                 <div className="space-y-6">
+                    {/* Dev Mode Toggle */}
+                    <div className="flex items-center justify-between p-3 bg-brand/5 rounded-2xl border border-brand/10">
+                        <span className="text-xs font-bold text-brand">Enable Dev Overrides</span>
+                        <button
+                            onClick={() => setIsDevEnabled(!isEnabled)}
+                            className={`w-10 h-5 rounded-full transition-colors ${isEnabled ? 'bg-brand' : 'bg-glass-hover'}`}
+                        >
+                            <div className={`w-3 h-3 bg-white rounded-full transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-1'} shadow-sm`} />
+                        </button>
+                    </div>
+
                     {/* Asset Upload Slots */}
                     <div className="space-y-3">
                         <h4 className="text-[10px] uppercase tracking-widest font-black text-brand">3D Asset Overrides</h4>
@@ -119,29 +161,50 @@ export function AssetManager() {
 
                     {/* Preset Creator */}
                     <div className="pt-6 border-t border-divider-faint space-y-4">
-                        <h4 className="text-[10px] uppercase tracking-widest font-black text-brand">Create Style Preset</h4>
+                        <h4 className="text-[10px] uppercase tracking-widest font-black text-brand">{editingId ? 'Edit Preset' : 'Create Style Preset'}</h4>
                         <div className="space-y-2">
-                            <label className="flex items-center gap-3 p-3 bg-brand/10 rounded-2xl border-2 border-dashed border-brand/30 cursor-pointer hover:bg-brand/20 transition-colors">
-                                <ImageIcon className="h-5 w-5 text-brand" />
-                                <span className="text-xs font-bold text-brand">
-                                    {assets.temp_preset_img ? 'Image Ready' : 'Upload Preview'}
-                                </span>
-                                <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'temp_preset_img')} />
-                            </label>
-                            <input
-                                type="text"
-                                placeholder="Preset Name (e.g. Summer Locs)"
-                                className="w-full p-3 bg-glass-input border border-divider-faint rounded-xl text-xs text-text-base placeholder-text-faint outline-none focus:border-brand/50 transition-colors"
-                                value={presetName}
-                                onChange={(e) => setPresetName(e.target.value)}
-                            />
-                            <button
-                                onClick={saveCurrentAsPreset}
-                                disabled={!assets.temp_preset_img || !presetName}
-                                className="w-full py-3 bg-brand text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 disabled:opacity-50 disabled:bg-glass-hover disabled:text-text-faintest shadow-brand-subtle transition-colors"
-                            >
-                                <Plus className="h-4 w-4" /> Save to Gallery
-                            </button>
+                            {!editingId && (
+                                <label className="flex items-center gap-3 p-3 bg-brand/10 rounded-2xl border-2 border-dashed border-brand/30 cursor-pointer hover:bg-brand/20 transition-colors">
+                                    <ImageIcon className="h-5 w-5 text-brand" />
+                                    <span className="text-xs font-bold text-brand">
+                                        {assets.temp_preset_img ? 'Image Ready' : 'Upload Preview'}
+                                    </span>
+                                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'temp_preset_img')} />
+                                </label>
+                            )}
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    placeholder="Preset Name"
+                                    className="flex-1 p-3 bg-glass-input border border-divider-faint rounded-xl text-xs text-text-base placeholder-text-faint outline-none focus:border-brand/50 transition-colors"
+                                    value={presetName}
+                                    onChange={(e) => setPresetName(e.target.value)}
+                                />
+                                <button
+                                    onClick={saveCurrentAsPreset}
+                                    disabled={(!assets.temp_preset_img && !editingId) || !presetName}
+                                    className="px-4 bg-brand text-white rounded-xl text-xs font-bold flex items-center justify-center disabled:opacity-50 shadow-brand-subtle"
+                                >
+                                    {editingId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Preset Management */}
+                    <div className="pt-6 border-t border-divider-faint space-y-3">
+                        <h4 className="text-[10px] uppercase tracking-widest font-black text-brand">Manage Custom Presets</h4>
+                        <div className="space-y-2">
+                            {customPresets.length === 0 && <p className="text-[10px] text-text-faintest italic">No custom presets yet.</p>}
+                            {customPresets.map(preset => (
+                                <div key={preset.id} className="flex items-center justify-between p-2 bg-glass-input rounded-xl group">
+                                    <span className="text-[11px] font-medium text-text-muted truncate flex-1">{preset.label}</span>
+                                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button onClick={() => handleEdit(preset)} className="p-1.5 hover:bg-glass-hover text-text-faintest hover:text-brand rounded-lg transition-colors"><Edit3 className="h-3.5 w-3.5" /></button>
+                                        <button onClick={() => deleteCustomPreset(preset.id)} className="p-1.5 hover:bg-glass-hover text-text-faintest hover:text-red-500 rounded-lg transition-colors"><Trash2 className="h-3.5 w-3.5" /></button>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
 

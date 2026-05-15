@@ -2,8 +2,51 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 /**
- * useHairStore - The single source of truth for the project.
- * Consolidates dynamic user state, static configuration maps, and calculation constants.
+ * Static Configuration (Lookup Maps & Constants)
+ * Moved outside the store to avoid redundant persistence in localStorage.
+ */
+export const CONFIG_MAPS = {
+    DENSITY_COUNTS: { 1: 20, 2: 40, 3: 60, 4: 100, 5: 150, 6: 220, 7: 320 },
+    STYLE_COLORS: {
+        1: '#6a331c', // Dark Brown
+        2: '#7a4d31', // Medium Brown
+        3: '#795c4b', // Light Brown
+        4: '#4c423b'  // Ash / Dark Grey
+    },
+    STYLE_MAP: {
+        1: ['Box Braids', 1.0],
+        2: ['Knotless', 1.2],
+        3: ['Twists', 0.9],
+        4: ['Locs', 1.1],
+    },
+    THICKNESS_MAP: {
+        1: ['Micro', 0.02],
+        2: ['Small', 0.04],
+        3: ['Smedium', 0.05],
+        4: ['Medium', 0.07],
+        5: ['Large', 0.12],
+        6: ['Jumbo', 0.25],
+    },
+    LENGTH_MAP: {
+        1: ['Ear', 0.8],
+        2: ['Jaw', 1.0],
+        3: ['Shoulder', 1.2],
+        4: ['Mid-back', 1.4],
+        5: ['Waist', 1.7],
+        6: ['Hip', 2.0],
+    },
+    DENSITY_MAP: {
+        1: ['Very Low', 0.6],
+        2: ['Low', 0.8],
+        3: ['Medium', 1.0],
+        4: ['Full', 1.2],
+        5: ['Very Full', 1.4],
+    },
+};
+
+/**
+ * useHairStore - The core selection and configuration store.
+ * Handles user hairstyle choices and provides access to static maps.
  */
 export const useHairStore = create(
     persist(
@@ -13,96 +56,37 @@ export const useHairStore = create(
             thicknessPos: 4,
             lengthPos: 3,
             densityPos: 4,
-            debugRaycast: false,
             theme: 'system', // 'light', 'dark', or 'system'
-            assets: {}, // Dynamic asset paths for custom models/textures
             customPresets: [], // Stores user-created presets
+            _hasHydrated: false,
 
-            // --- Static Configuration (Lookup Maps & Constants) ---
-            // Centralized here so both UI and 3D components stay in sync.
-
-            // --- Dev Kit Configuration (Collision & Parting Math) ---
-            // This section exposes core mathematical variables for the 3D physics engine and raycaster.
-            // Tweaking these values allows developers to fine-tune hair draping and parting aesthetics
-            // without needing to modify the complex loops in Experience.jsx.
-            DEV_CONFIG: {
-                // PRIMARY COLLISION (Jaw/Face):
-                // Defines a mathematical sphere around the model's head to prevent hair from clipping into the face.
-                headCenterY: 1.25,   // Vertical position of the head sphere (0 is the floor, 1.4 is top of head)
-                headRadius: 0.95,    // The size of the head sphere. Increase this if hair clips into the cheeks/jaw.
-
-                // SECONDARY COLLISION (Chest/Shoulders):
-                // Defines a larger, lower sphere to simulate shoulders, forcing the hair to drape organically over them.
-                torsoCenterY: 0.2,   // Vertical position of the shoulder sphere. Lower = further down the chest.
-                torsoRadius: 1.25,   // Size of the shoulder sphere. Increase if the model has very broad shoulders.
-                torsoPushOut: 0.5,   // Collision strength. Higher = hair glides outward more aggressively on the shoulder.
-
-                // PARTING MATHEMATICS:
-                // Controls how the raycaster calculates the spherical grid to spawn braids.
-                partingRowMultiplier: 5,     // Increases/decreases the number of horizontal parting rows on the scalp.
-                partingPointMultiplier: 5, // Increases/decreases the number of braids placed along the widest row.
-
-                // DYNAMIC DENSITY:
-                // If true, the engine automatically generates tighter, closer parts when a thinner braid (like "Micro") 
-                // is selected, ensuring the scalp looks properly filled without relying purely on the Density slider.
-                thicknessDensityScale: true,
-            },
-
-            DENSITY_COUNTS: { 1: 20, 2: 40, 3: 60, 4: 100, 5: 150, 6: 220, 7: 320 },
-
-            STYLE_COLORS: {
-                1: '#6a331c', // Dark Brown
-                2: '#7a4d31', // Medium Brown
-                3: '#795c4b', // Light Brown
-                4: '#4c423b'  // Ash / Dark Grey
-            },
-
-            STYLE_MAP: {
-                1: ['Box Braids', 1.0], // Default to 1.0 for modifiers
-                2: ['Knotless', 1.2],
-                3: ['Twists', 0.9],
-                4: ['Locs', 1.1],
-            },
-
-            THICKNESS_MAP: {
-                1: ['Micro', 0.02],
-                2: ['Small', 0.04],
-                3: ['Smedium', 0.05],
-                4: ['Medium', 0.07],
-                5: ['Large', 0.12],
-                6: ['Jumbo', 0.25],
-            },
-
-            LENGTH_MAP: {
-                1: ['Ear', 0.8],
-                2: ['Jaw', 1.0],
-                3: ['Shoulder', 1.2],
-                4: ['Mid-back', 1.4],
-                5: ['Waist', 1.7],
-                6: ['Hip', 2.0],
-            },
-
-            DENSITY_MAP: {
-                1: ['Very Low', 0.6],
-                2: ['Low', 0.8],
-                3: ['Medium', 1.0],
-                4: ['Full', 1.2],
-                5: ['Very Full', 1.4],
-            },
+            // --- Configuration Getters (Maintain compatibility with existing selectors) ---
+            DENSITY_COUNTS: CONFIG_MAPS.DENSITY_COUNTS,
+            STYLE_COLORS: CONFIG_MAPS.STYLE_COLORS,
+            STYLE_MAP: CONFIG_MAPS.STYLE_MAP,
+            THICKNESS_MAP: CONFIG_MAPS.THICKNESS_MAP,
+            LENGTH_MAP: CONFIG_MAPS.LENGTH_MAP,
+            DENSITY_MAP: CONFIG_MAPS.DENSITY_MAP,
 
             // --- Actions ---
             setStylePos: (pos) => set({ stylePos: pos }),
             setThicknessPos: (pos) => set({ thicknessPos: pos }),
             setLengthPos: (pos) => set({ lengthPos: pos }),
             setDensityPos: (pos) => set({ densityPos: pos }),
-            setAssets: (assets) => set({ assets }),
-            setAssetOverride: (slot, url) => set((state) => ({ assets: { ...state.assets, [slot]: url } })),
-            resetAssets: () => set({ assets: {} }),
-            setDebugRaycast: (val) => set({ debugRaycast: val }),
             setTheme: (theme) => set({ theme }),
-            addCustomPreset: (preset) => set((state) => ({ customPresets: [...(state.customPresets || []), preset] })),
+            setHasHydrated: (state) => set({ _hasHydrated: state }),
 
-            // Reset helper
+            // Preset CRUD
+            addCustomPreset: (preset) => set((state) => ({
+                customPresets: [...(state.customPresets || []), preset]
+            })),
+            deleteCustomPreset: (id) => set((state) => ({
+                customPresets: state.customPresets.filter(p => p.id !== id)
+            })),
+            updateCustomPreset: (id, updates) => set((state) => ({
+                customPresets: state.customPresets.map(p => p.id === id ? { ...p, ...updates } : p)
+            })),
+
             resetSelections: () => set({
                 stylePos: 1,
                 thicknessPos: 4,
@@ -112,16 +96,61 @@ export const useHairStore = create(
         }),
         {
             name: 'hair-storage',
-            // Persist only user selections to localStorage.
-            // Maps and constants remain in the code to ensure they stay up-to-date.
             partialize: (state) => ({
                 stylePos: state.stylePos,
                 thicknessPos: state.thicknessPos,
                 lengthPos: state.lengthPos,
                 densityPos: state.densityPos,
-                assets: state.assets,
+                theme: state.theme,
                 customPresets: state.customPresets,
             }),
+            onRehydrateStorage: () => (state) => {
+                state?.setHasHydrated(true);
+            },
+        }
+    )
+);
+
+/**
+ * useDevStore - The Developer Tooling and Override store.
+ * Isolated from the main user store to allow easy enabling/disabling of dev features.
+ */
+export const useDevStore = create(
+    persist(
+        (set) => ({
+            isEnabled: false, // Global toggle for Dev Kit
+            debugRaycast: false,
+            assets: {}, // Dynamic asset overrides
+            _hasHydrated: false,
+
+            DEV_CONFIG: {
+                headCenterY: 1.25,
+                headRadius: 0.95,
+                torsoCenterY: 0.2,
+                torsoRadius: 1.25,
+                torsoPushOut: 0.5,
+                partingRowMultiplier: 5,
+                partingPointMultiplier: 5,
+                thicknessDensityScale: true,
+            },
+
+            // Actions
+            setIsDevEnabled: (val) => set({ isEnabled: val }),
+            setDebugRaycast: (val) => set({ debugRaycast: val }),
+            setAssetOverride: (slot, url) => set((state) => ({ 
+                assets: { ...state.assets, [slot]: url } 
+            })),
+            resetAssets: () => set({ assets: {} }),
+            updateDevConfig: (key, val) => set((state) => ({
+                DEV_CONFIG: { ...state.DEV_CONFIG, [key]: val }
+            })),
+            setHasHydrated: (state) => set({ _hasHydrated: state }),
+        }),
+        {
+            name: 'hair-dev-storage',
+            onRehydrateStorage: () => (state) => {
+                state?.setHasHydrated(true);
+            },
         }
     )
 );

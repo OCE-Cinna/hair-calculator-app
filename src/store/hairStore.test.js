@@ -17,17 +17,13 @@ describe('useHairStore', () => {
         expect(useHairStore.getState().stylePos).toBe(4);
     });
 
-    it('should apply presets correctly', () => {
-        const { applyPreset } = useHairStore.getState();
-        const mockPreset = {
-            stylePos: 1,
-            thicknessPos: 2,
-            lengthPos: 5,
-            densityPos: 6
-        };
-        applyPreset(mockPreset);
+    it('should reset selections correctly', () => {
+        const { resetSelections } = useHairStore.getState();
+        resetSelections();
         const state = useHairStore.getState();
         expect(state.stylePos).toBe(1);
-        expect(state.lengthPos).toBe(5);
+        expect(state.thicknessPos).toBe(4);
+        expect(state.lengthPos).toBe(3);
+        expect(state.densityPos).toBe(4);
     });
 });
