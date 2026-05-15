@@ -436,7 +436,7 @@ function HairStrands({ stylePos, lengthPos, thicknessPos, hairPlacementPoints })
                 quaternion.setFromUnitVectors(upVec, currentDir);
                 matrix.compose(currentPos, quaternion, finalScale);
                 endInstancedMeshRef.current.setMatrixAt(i, matrix);
-            } catch (e) { }
+            } catch (e) { console.error("PAH: Physics loop error", e); }
         });
 
         // Set the final required instance counts
