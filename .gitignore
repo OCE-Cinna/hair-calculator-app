@@ -14,7 +14,8 @@ dist-ssr
 
 # Editor directories and files
 .vscode/
-.github/
+.github/*
+!.github/workflows/
 .idea
 .DS_Store
 *.suo
@@ -59,3 +60,4 @@ src/assets/*.jpeg
 src/assets/*.jpg
 src/assets/*.png
 src/App.jsx.old
+copilot-instruction.md
