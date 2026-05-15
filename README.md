@@ -92,7 +92,6 @@ Stylist Mode exposes:
 ## Documentation
 
 - [User Guide](./TUTORIAL.md) — Complete walkthrough for end users
-- [TODO](./TODO.md) — Tracked development tasks and roadmap
 
 ## License
 
