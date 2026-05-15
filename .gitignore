@@ -35,3 +35,27 @@ build/
 
 # Vite
 .vite
+
+# Documents
+docs/
+*.pdf
+*.docx
+*.pptx
+*.xlsx
+*devlog*
+*DEVLOG*
+
+# AI Assistant Context
+.agents/
+
+# Planning & Reference
+Project Plan-1.pdf
+Projectplan.txt
+glassmorphism-reference.md
+
+# Junk assets and backups
+src/assets/Untitled.blend*
+src/assets/*.jpeg
+src/assets/*.jpg
+src/assets/*.png
+src/App.jsx.old
