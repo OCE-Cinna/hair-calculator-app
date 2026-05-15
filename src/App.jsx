@@ -170,10 +170,15 @@ function StyleSelector({ value, onChange, map }) {
  */
 function RangeSlider({ id, min, max, step, value, onChange, map, labelText, buttonLabels }) {
   const labels = Object.keys(map).map(k => map[Number(k)][0]);
-  const percentage = ((value - min) / (max - min)) * 100;
+  
+  // Ensure value is within bounds for rendering the percentage
+  const safeValue = Math.min(Math.max(value, min), max);
+  const percentage = ((safeValue - min) / (max - min)) * 100;
 
   const decrement = () => onChange({ target: { value: Math.max(min, value - step) } });
   const increment = () => onChange({ target: { value: Math.min(max, value + step) } });
+
+  const currentValueLabel = map[value]?.[0] || map[min]?.[0] || 'Unknown';
 
   return (
     <div className="mb-8 w-full">
@@ -181,7 +186,7 @@ function RangeSlider({ id, min, max, step, value, onChange, map, labelText, butt
         <label htmlFor={id} className="text-xl font-semibold text-gray-800">
           {labelText}:
         </label>
-        <span className="text-xl font-bold text-gray-400 ml-3">{map[value][0]}</span>
+        <span className="text-xl font-bold text-gray-400 ml-3">{currentValueLabel}</span>
         {buttonLabels && (
           <div className="flex space-x-2">
             <button
@@ -349,17 +354,17 @@ export default function App() {
   const allPresets = [...INITIAL_PRESETS, ...(customPresets || [])].map(p => ({
     ...p,
     // Ensure local preset images are correctly routed to the /presets/ subdirectory
-    image: p.image && !p.image.startsWith('http') && !p.image.startsWith('/presets/')
+    image: p.image && !p.image.startsWith('http') && !p.image.startsWith('/presets/') && !p.image.startsWith('data:')
       ? `/presets/${p.image.replace(/^\//, '')}`
       : p.image
   }));
 
   const handleSelectPreset = (preset, parsed) => { // parsed comes from parsePresetFilename
     setActivePresetId(preset.id);
-    setStylePos(parsed.stylePos);
-    setThicknessPos(parsed.thicknessPos);
-    setLengthPos(parsed.lengthPos);
-    setDensityPos(parsed.densityPos);
+    setStylePos(preset.stylePos || parsed.stylePos);
+    setThicknessPos(preset.thicknessPos || parsed.thicknessPos);
+    setLengthPos(preset.lengthPos || parsed.lengthPos);
+    setDensityPos(preset.densityPos || parsed.densityPos);
   };
 
   return (

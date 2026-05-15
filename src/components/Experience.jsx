@@ -33,7 +33,7 @@ class ExperienceErrorBoundary extends React.Component {
  * @returns {Array<{position: THREE.Vector3, normal: THREE.Vector3, uv: THREE.Vector2}>} An array of hair placement points.
  * Raycasting-based hair placement with UV texture masking
  */
-function useRaycastHairPlacement(headMeshRef, texture, stylePos, densityPos) {
+function useRaycastHairPlacement(headMeshRef, texture, stylePos, densityPos, bustPath) {
     const [hairPoints, setHairPoints] = useState([]);
     const DENSITY_COUNTS = useHairStore(state => state.DENSITY_COUNTS);
     useEffect(() => {
@@ -89,7 +89,7 @@ function useRaycastHairPlacement(headMeshRef, texture, stylePos, densityPos) {
                         const pixelX = Math.floor(uv.x * (width - 1));
                         const pixelY = Math.floor((1 - uv.y) * (height - 1));
                         const pixelIndex = (pixelY * width + pixelX) * 4;
-                        if (imageData[pixelIndex] > 128) {
+                        if (imageData[pixelIndex] > 128 && hit.point.y > 0.8) {
                             raycastPoints.push({
                                 position: hit.point.clone(),
                                 normal: hit.face.normal.clone().transformDirection(headMesh.matrixWorld),
@@ -114,7 +114,7 @@ function useRaycastHairPlacement(headMeshRef, texture, stylePos, densityPos) {
         });
 
         setHairPoints(symmetricPoints.slice(0, targetCount));
-    }, [headMeshRef, texture, stylePos, densityPos, DENSITY_COUNTS]); // Added DENSITY_COUNTS to dependencies
+    }, [headMeshRef, texture, stylePos, densityPos, DENSITY_COUNTS, bustPath]); // Re-run when model changes
 
     return hairPoints;
 }
@@ -173,22 +173,30 @@ function HairStrands({ stylePos, lengthPos, thicknessPos, hairPlacementPoints })
         const scaleVec = new THREE.Vector3(tScale, 1, tScale); // Scale X and Z for thickness
 
         hairPlacementPoints.forEach((point, i) => {
-            const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), point.normal);
+            let currentPos = point.position.clone();
+            // Start direction: push out from normal, slightly down
+            let currentDir = point.normal.clone().add(new THREE.Vector3(0, -0.2, 0)).normalize();
+            
             for (let j = 0; j < lengthPos; j++) {
                 try {
-                    const pos = point.position.clone().add(point.normal.clone().multiplyScalar(j * segmentHeight));
-                    matrix.compose(pos, quaternion, scaleVec); // Apply thickness scale
+                    // Blend direction towards gravity (0, -1, 0) for a natural hanging curve
+                    currentDir.lerp(new THREE.Vector3(0, -1, 0), 0.25).normalize();
+                    const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), currentDir);
+                    
+                    matrix.compose(currentPos, quaternion, scaleVec);
                     instancedMeshRef.current.setMatrixAt(i * lengthPos + j, matrix);
+                    
+                    // Advance to next segment position
+                    currentPos.add(currentDir.clone().multiplyScalar(segmentHeight));
                 } catch (e) {
-                    // Skip corrupted points
                     continue;
                 }
             }
             try {
-                const endPos = point.position.clone().add(point.normal.clone().multiplyScalar(lengthPos * segmentHeight));
-                matrix.compose(endPos, quaternion, scaleVec); // Apply thickness scale to end cap
+                // End cap follows the final direction
+                matrix.compose(currentPos, new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), currentDir), scaleVec);
                 endInstancedMeshRef.current.setMatrixAt(i, matrix);
-            } catch (e) { }
+            } catch (e) {}
         });
         instancedMeshRef.current.instanceMatrix.needsUpdate = true;
         endInstancedMeshRef.current.instanceMatrix.needsUpdate = true;
@@ -257,14 +265,19 @@ function ThreeDSceneContent() {
     const thicknessPos = useHairStore(state => state.thicknessPos); // Get thicknessPos from store
     const maskPath = debugRaycast ? (assets.uv_reference || "/textures/uv_reference.png") : (assets.scalp_mask || "/textures/scalp_mask.jpeg"); // This line was duplicated, removed the extra one.
     const mask = useTexture(maskPath);
-    const hairPlacementPoints = useRaycastHairPlacement(headGroupRef, mask, stylePos, densityPos);
+    const hairPlacementPoints = useRaycastHairPlacement(headGroupRef, mask, stylePos, densityPos, assets.custombust);
 
     return (
         <>
             <color attach="background" args={['#f3f4f6']} />
-            <ambientLight intensity={0.8} color="#ffffff" />
-            <directionalLight position={[5, 10, 7.5]} intensity={1.5} />
-            <CameraFollowLight intensity={1} />
+            <ambientLight intensity={0.5} color="#ffffff" />
+            {/* Key Light */}
+            <directionalLight position={[4, 6, 4]} intensity={1.5} castShadow />
+            {/* Fill Light */}
+            <directionalLight position={[-5, 3, 5]} intensity={0.8} color="#b0c4de" />
+            {/* Rim/Back Light */}
+            <directionalLight position={[0, 5, -8]} intensity={2.5} color="#ffd700" />
+            <CameraFollowLight intensity={0.6} />
             <OrbitControls enableDamping dampingFactor={0.15} target={[0, 1.5, 0]} maxPolarAngle={Math.PI / 1.5} minPolarAngle={0.2} minDistance={5} maxDistance={12} />
             <HeadModel ref={headGroupRef} />
             <HairStrands stylePos={stylePos} lengthPos={lengthPos} thicknessPos={thicknessPos} hairPlacementPoints={hairPlacementPoints} />

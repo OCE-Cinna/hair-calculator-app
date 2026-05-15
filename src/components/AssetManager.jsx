@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useHairStore } from '../store/hairStore';
+import { parsePresetFilename } from '../constants/presets';
 import { Settings, RefreshCcw, FileUp, ShieldAlert, Plus, Image as ImageIcon } from 'lucide-react';
 
 export function AssetManager() {
@@ -8,18 +9,33 @@ export function AssetManager() {
     const store = useHairStore();
     const { assets, setAssetOverride, resetAssets, debugRaycast, setDebugRaycast, addCustomPreset } = store;
 
-    const convertToJpeg = (file) => {
+    const convertToJpeg = (file, maxWidth = 512, maxHeight = 512) => {
         return new Promise((resolve) => {
             const reader = new FileReader();
             reader.onload = (e) => {
                 const img = new Image();
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
-                    canvas.width = img.width;
-                    canvas.height = img.height;
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    if (width > height) {
+                        if (width > maxWidth) {
+                            height = Math.round((height * maxWidth) / width);
+                            width = maxWidth;
+                        }
+                    } else {
+                        if (height > maxHeight) {
+                            width = Math.round((width * maxHeight) / height);
+                            height = maxHeight;
+                        }
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
                     const ctx = canvas.getContext('2d');
-                    ctx.drawImage(img, 0, 0);
-                    resolve(canvas.toDataURL('image/jpeg', 0.85));
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.7));
                 };
                 img.src = e.target.result;
             };
@@ -30,7 +46,15 @@ export function AssetManager() {
     const handleFileUpload = async (e, slot) => {
         const file = e.target.files[0];
         if (!file) return;
-        const url = (slot === 'scalp_mask' || slot.includes('preset'))
+        
+        if (slot === 'temp_preset_img') {
+            const url = await convertToJpeg(file);
+            setAssetOverride(slot, url);
+            setPresetName(file.name.replace(/\.[^.]+$/, ''));
+            return;
+        }
+
+        const url = (slot === 'scalp_mask')
             ? await convertToJpeg(file)
             : URL.createObjectURL(file);
         setAssetOverride(slot, url);
@@ -39,10 +63,19 @@ export function AssetManager() {
     const saveCurrentAsPreset = async () => {
         if (!presetName) return alert('Enter a preset name');
         const id = presetName.toLowerCase().replace(/\s+/g, '_');
+        
+        const parsed = parsePresetFilename(presetName);
+        const lengthName = store.LENGTH_MAP[parsed.lengthPos][0];
+        const thicknessName = store.THICKNESS_MAP[parsed.thicknessPos][0];
+        const styleName = store.STYLE_MAP[parsed.stylePos][0];
+        
+        const label = `${lengthName.split(' ')[0]} ${styleName}`;
+        const sublabel = `${thicknessName} · ${lengthName}`;
+
         const newPreset = {
             id,
-            label: presetName,
-            sublabel: 'Custom Preset',
+            label,
+            sublabel,
             image: assets.temp_preset_img,
             stylePos: store.stylePos,
             thicknessPos: store.thicknessPos,
