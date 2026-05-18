@@ -14,11 +14,18 @@ import { HeadModel } from './HeadModel';
 class ExperienceErrorBoundary extends React.Component {
     state = { hasError: false };
     static getDerivedStateFromError() { return { hasError: true }; }
+    reset() { this.setState({ hasError: false }); }
     render() {
         if (this.state.hasError) {
             return (
-                <div className="flex items-center justify-center w-full h-full bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg">
-                    <p className="text-gray-400 text-sm">Rendering Error: Please refresh or check assets.</p>
+                <div className="flex flex-col items-center justify-center w-full h-full gap-4 bg-glass-panel-muted rounded-3xl">
+                    <p className="text-text-faint text-sm text-center px-6">3D rendering error. Check that your assets are in place.</p>
+                    <button
+                        onClick={() => this.reset()}
+                        className="flex items-center gap-2 px-4 py-2 bg-brand text-white text-xs font-bold rounded-xl hover:opacity-90 transition-opacity"
+                    >
+                        ↺ Retry
+                    </button>
                 </div>
             );
         }
@@ -43,137 +50,194 @@ class ExperienceErrorBoundary extends React.Component {
  * @param {number} stylePos, densityPos - Store values triggering recalculations.
  * @returns {Array<{position, normal, uv}>} The calculated coordinates for each braid root.
  */
-function useRaycastHairPlacement(headMeshRef, texture, stylePos, densityPos, bustPath) {
-    const [hairPoints, setHairPoints] = useState([]);
+function useRaycastHairPlacement(headMesh, texture, stylePos, densityPos, bustPath) {
     const { DENSITY_COUNTS, THICKNESS_MAP, thicknessPos } = useHairStore(useShallow(state => ({
         DENSITY_COUNTS: state.DENSITY_COUNTS,
         THICKNESS_MAP: state.THICKNESS_MAP,
         thicknessPos: state.thicknessPos
     })));
-    const { DEV_CONFIG, assets } = useDevStore(useShallow(state => ({
-        DEV_CONFIG: state.DEV_CONFIG,
-        assets: state.assets
+    const { DEV_CONFIG } = useDevStore(useShallow(state => ({
+        DEV_CONFIG: state.DEV_CONFIG
     })));
 
+    // Ref to store the static high-density candidate pool
+    const poolRef = useRef([]);
+    const [poolKey, setPoolKey] = useState(0);
+
+    // Part 1: Generate static candidate pool exactly once when geometry/texture changes
     useEffect(() => {
-        const headGroup = headMeshRef.current;
-        if (!headGroup || !texture || !texture.image || texture.image.width === 0) {
-            setHairPoints([]);
+        if (!headMesh || !texture || !texture.image || texture.image.width === 0) {
+            if (poolRef.current.length > 0) {
+                poolRef.current = [];
+                setPoolKey(k => k + 1);
+            }
             return;
         }
 
-        // Base target count
-        let targetCount = (DENSITY_COUNTS && DENSITY_COUNTS[densityPos]) ?? 42;
-
-        // Dynamically scale total generated points based on thickness so that Micro braids 
-        // generate smaller, closer partings automatically!
-        if (DEV_CONFIG?.thicknessDensityScale && THICKNESS_MAP && THICKNESS_MAP[thicknessPos]) {
-            const tScale = THICKNESS_MAP[thicknessPos][1];
-            // Normalize against 'Medium' (which is roughly 0.07). Jumbo (0.25) shrinks count, Micro (0.02) boosts count.
-            const thicknessRatio = 0.07 / Math.max(0.01, tScale);
-            // Sqrt softens the exponential curve, but still heavily populates micro braids
-            targetCount = Math.floor(targetCount * Math.sqrt(thicknessRatio));
+        let mesh = null;
+        headMesh.traverse((child) => { if (child.isMesh) mesh = child; });
+        if (!mesh || !mesh.geometry) {
+            if (poolRef.current.length > 0) {
+                poolRef.current = [];
+                setPoolKey(k => k + 1);
+            }
+            return;
         }
-
-        const raycaster = new THREE.Raycaster();
-        const rayDirection = new THREE.Vector3(0, -1, 0);
 
         const canvas = document.createElement('canvas');
         const { width, height } = texture.image;
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
-
-        if (!ctx) {
-            console.error("PAH: Failed to initialize 2D context for hair placement.");
-            return;
-        }
-
+        if (!ctx) return;
         ctx.drawImage(texture.image, 0, 0);
-        let imageData;
-        try {
-            imageData = ctx.getImageData(0, 0, width, height).data;
-        } catch (e) {
-            console.error("PAH: Image data access failed.", e);
-            return;
-        }
+        const imageData = ctx.getImageData(0, 0, width, height).data;
 
-        let headMesh = null;
-        headGroup.traverse((child) => { if (child.isMesh) headMesh = child; });
-        if (!headMesh || !headMesh.geometry) return;
+        const raycaster = new THREE.Raycaster();
+        const center = new THREE.Vector3(0, 1.4, 0);
+        const radius = 2.5;
+        const candidates = [];
 
-        const center = new THREE.Vector3(0, 1.4, 0); // Approximate center of the head
-        const radius = 2.5; // Start ray from outside the head
-        const raycastPoints = [];
-
-        // Determine resolution based on density and thickness to match real-life sectioning charts
-        const rowMultiplier = DEV_CONFIG?.partingRowMultiplier || 1.1;
-        const pointMultiplier = DEV_CONFIG?.partingPointMultiplier || 1.8;
-
-        // The number of horizontal rows scales with the square root of total braids
-        const rowCount = Math.max(3, Math.floor(Math.sqrt(targetCount) * rowMultiplier));
-        // Points in the widest ring (middle of head) scales with the square root
-        const basePoints = Math.max(4, Math.floor(Math.sqrt(targetCount) * pointMultiplier));
+        // Run high density spherical grid (e.g. 240 targets on half-hemisphere)
+        // This provides up to ~1000 candidate starting points, which is plenty for max density
+        const poolDensity = 240; 
+        const phiMin = 0.0;
+        const phiMax = 1.4;
+        const rowCount = Math.max(4, Math.floor(Math.sqrt(poolDensity) * 1.2));
 
         for (let r = 0; r <= rowCount; r++) {
-            // phi: vertical angle. 0 is straight up, ~1.4 rad is around the ear/nape level
-            const phi = (r / rowCount) * 1.5;
+            const phi = phiMin + (r / rowCount) * (phiMax - phiMin);
+            let basePtsInRow = Math.max(4, Math.floor(Math.sqrt(poolDensity) * 2.0 * Math.sin(phi)));
+            let ptsInHalfRow = Math.max(2, Math.floor(basePtsInRow / 2));
+            const staggerOffset = (r % 2 === 0) ? (Math.PI / Math.max(1, basePtsInRow)) : 0;
 
-            // Calculate base points for this row
-            let ptsInRow = Math.max(1, Math.floor(basePoints * Math.sin(phi)));
-
-            // ENFORCE SYMMETRY:
-            // Unless it's the single point at the absolute top of the head, 
-            // force the number of points in the row to be EVEN. This guarantees that 
-            // every braid on the left side has a perfect mirror on the right side.
-            if (ptsInRow > 1 && ptsInRow % 2 !== 0) {
-                ptsInRow += 1;
+            const rowThetas = [];
+            for (let t = 0; t < ptsInHalfRow; t++) {
+                const theta = -Math.PI / 2 + (t / Math.max(1, ptsInHalfRow - 1)) * Math.PI + staggerOffset;
+                rowThetas.push(theta);
             }
 
-            // Offset every other row to create a "brick-lay" parting pattern (standard for box braids)
-            const thetaOffset = (r % 2 === 0) ? 0 : (Math.PI / ptsInRow);
+            rowThetas.forEach((theta) => {
+                const isFront = Math.sin(theta) > 0;
+                const spawnChance = isFront ? 1.0 : 2.0;
 
-            for (let t = 0; t < ptsInRow; t++) {
-                const theta = (t / ptsInRow) * Math.PI * 2 + thetaOffset;
+                for (let s = 0; s < Math.round(spawnChance); s++) {
+                    const finalTheta = theta + (s > 0 ? (Math.PI / basePtsInRow) * 0.5 : 0);
 
-                // Convert Spherical coordinates to Cartesian
-                const x = center.x + radius * Math.sin(phi) * Math.cos(theta);
-                const y = center.y + radius * Math.cos(phi);
-                const z = center.z + radius * Math.sin(phi) * Math.sin(theta);
+                    const x = center.x + radius * Math.sin(phi) * Math.cos(finalTheta);
+                    const y = center.y + radius * Math.cos(phi);
+                    const z = center.z + radius * Math.sin(phi) * Math.sin(finalTheta);
 
-                const rayOrigin = new THREE.Vector3(x, y, z);
-                // Shoot ray directly inwards towards the center of the head
-                const rayDirection = new THREE.Vector3().subVectors(center, rayOrigin).normalize();
+                    const rayOrigin = new THREE.Vector3(x, y, z);
+                    const rayDirection = new THREE.Vector3().subVectors(center, rayOrigin).normalize();
 
-                raycaster.set(rayOrigin, rayDirection);
-                const intersects = raycaster.intersectObject(headMesh);
+                    raycaster.set(rayOrigin, rayDirection);
+                    const intersects = raycaster.intersectObject(mesh);
 
-                if (intersects.length > 0) {
-                    const hit = intersects[0];
-                    const uv = hit.uv;
-                    if (uv) {
-                        // We still check the mask so users can draw custom partings, 
-                        // AND we check the mathematical Y bounds to avoid neck spawns
-                        const pixelX = Math.floor(uv.x * (width - 1));
-                        const pixelY = Math.floor((1 - uv.y) * (height - 1));
-                        const pixelIndex = (pixelY * width + pixelX) * 4;
+                    if (intersects.length > 0) {
+                        const hit = intersects[0];
+                        const uv = hit.uv;
 
-                        if (imageData[pixelIndex] > 128 && hit.point.y > 0.8) {
-                            raycastPoints.push({
-                                position: hit.point.clone(),
-                                normal: hit.face.normal.clone().transformDirection(headMesh.matrixWorld),
-                                uv: uv.clone()
-                            });
+                        if (uv) {
+                            const pixelX = Math.floor(uv.x * (width - 1));
+                            const pixelY = Math.floor((1 - uv.y) * (height - 1));
+                            const pixelIndex = (pixelY * width + pixelX) * 4;
+
+                            const rVal = imageData[pixelIndex];
+                            const gVal = imageData[pixelIndex + 1];
+                            const bVal = imageData[pixelIndex + 2];
+
+                            if (rVal > 128 || gVal > 128 || bVal > 128) {
+                                let region = "top";
+                                if (gVal > rVal && gVal > bVal) {
+                                    region = "sides";
+                                } else if (bVal > rVal && bVal > gVal) {
+                                    region = "back";
+                                }
+
+                                candidates.push({
+                                    position: hit.point.clone(),
+                                    normal: hit.face.normal.clone().transformDirection(mesh.matrixWorld),
+                                    uv: uv.clone(),
+                                    region,
+                                    yThreshold: region === "back" ? 0.58 : 0.85
+                                });
+                            }
                         }
                     }
                 }
-            }
+            });
         }
 
-        setHairPoints(raycastPoints.slice(0, targetCount));
-    }, [headMeshRef, texture, stylePos, densityPos, DENSITY_COUNTS, thicknessPos, THICKNESS_MAP, DEV_CONFIG, assets.custombust]);
+        poolRef.current = candidates;
+        setPoolKey(k => k + 1);
+    }, [headMesh, texture, bustPath]);
 
-    return hairPoints;
+    // Part 2: Synchronous filtering and spacing calculation using useMemo
+    return useMemo(() => {
+        const candidates = poolRef.current;
+        if (candidates.length === 0) return [];
+
+        let baseDensity = (DENSITY_COUNTS && DENSITY_COUNTS[densityPos]) ?? 42;
+        const thicknessScale = (THICKNESS_MAP && THICKNESS_MAP[thicknessPos]) ? THICKNESS_MAP[thicknessPos][1] : 0.07;
+
+        const thicknessMultiplier = 0.07 / thicknessScale;
+        let dynamicDensity = Math.round(baseDensity * thicknessMultiplier);
+        dynamicDensity = Math.max(8, Math.min(350, dynamicDensity));
+
+        const centerPartingWidth = DEV_CONFIG?.centerPartingWidth ?? (thicknessScale * 0.9);
+        const partThickness = DEV_CONFIG?.partThickness ?? (thicknessScale * 1.15);
+
+        const targetPoints = [];
+
+        // Process spacing and parting constraints on the pool
+        for (const candidate of candidates) {
+            if (candidate.position.y <= candidate.yThreshold) continue;
+
+            if (candidate.region === "top" && Math.abs(candidate.position.x) < centerPartingWidth) {
+                continue;
+            }
+
+            let tooClose = false;
+            for (const existing of targetPoints) {
+                if (candidate.position.distanceTo(existing.position) < partThickness) {
+                    tooClose = true;
+                    break;
+                }
+            }
+            if (tooClose) continue;
+
+            const mirroredPoint = new THREE.Vector3(-candidate.position.x, candidate.position.y, candidate.position.z);
+            const mirroredNormal = new THREE.Vector3(-candidate.normal.x, candidate.normal.y, candidate.normal.z);
+
+            targetPoints.push({
+                position: candidate.position,
+                normal: candidate.normal,
+                uv: candidate.uv,
+                region: candidate.region
+            });
+
+            targetPoints.push({
+                position: mirroredPoint,
+                normal: mirroredNormal,
+                uv: candidate.uv,
+                region: candidate.region
+            });
+        }
+
+        // Uniform sample targetPoints to select dynamicDensity elements
+        const totalGenerated = targetPoints.length;
+        if (totalGenerated <= dynamicDensity) {
+            return targetPoints;
+        }
+
+        const sampledPoints = [];
+        for (let i = 0; i < dynamicDensity; i++) {
+            const index = Math.floor(i * (totalGenerated / dynamicDensity));
+            sampledPoints.push(targetPoints[index]);
+        }
+        return sampledPoints;
+    }, [poolKey, densityPos, DENSITY_COUNTS, thicknessPos, THICKNESS_MAP, DEV_CONFIG]);
 }
 
 /**
@@ -199,48 +263,40 @@ function HairStrands({ stylePos, lengthPos, thicknessPos, hairPlacementPoints })
 
     // Style-specific model mapping
     const styleMap = {
-        1: { main: "/models/boxbraid.glb", end: "/models/boxbraidend.glb" }, // Box Braids
-        2: { main: "/models/flatbraid.glb", end: "/models/flatbraidend.glb" }, // Knotless / Flat
-        3: { main: "/models/twist.glb", end: "/models/twistend.glb" }, // Twists
-        4: { main: "/models/twist.glb", end: "/models/twistend.glb" } // Locs (fallback to twist)
+        1: "/models/hair_box_mid.glb", // Box Braids
+        2: "/models/hair_box_mid.glb", // Knotless / Flat (fallback)
+        3: "/models/hair_twist_mid.glb", // Twists
+        4: "/models/hair_loc_mid.glb" // Locs
     };
 
-    const activePaths = devEnabled ? {
-        main: assets?.boxbraid || styleMap[stylePos]?.main || "/models/boxbraid.glb",
-        end: assets?.boxbraidend || styleMap[stylePos]?.end || "/models/boxbraidend.glb"
-    } : (styleMap[stylePos] || styleMap[1]);
+    const activePath = devEnabled
+        ? (assets?.hair_box_mid || styleMap[stylePos] || "/models/hair_box_mid.glb")
+        : (styleMap[stylePos] || styleMap[1]);
 
     const instancedMeshRef = useRef();
-    const endInstancedMeshRef = useRef();
     const fallbackMeshRef = useRef();
     const debugMeshRef = useRef();
 
-    const segmentGLTF = useGLTF(activePaths.main, 'https://www.gstatic.com/draco/versioned/decoders/1.5.5/');
-    const endGLTF = useGLTF(activePaths.end, 'https://www.gstatic.com/draco/versioned/decoders/1.5.5/');
+    const segmentGLTF = useGLTF(activePath, 'https://www.gstatic.com/draco/versioned/decoders/1.5.5/');
 
     const braidSegment = segmentGLTF?.scene;
-    const braidEnd = endGLTF?.scene;
 
     const { DEV_CONFIG } = useDevStore(useShallow(state => ({ DEV_CONFIG: state.DEV_CONFIG })));
 
     // Robust extraction: find the first actual Mesh in the GLTF hierarchy
-    // We use useMemo to ensure these are stable and defined before hooks use them.
-    const { segmentGeo, segmentMat, endGeo, endMat } = useMemo(() => {
-        let sGeo, sMat, eGeo, eMat;
+    const segmentGeo = useMemo(() => {
+        let sGeo = null;
         braidSegment?.traverse(c => {
-            if (c.isMesh && !sGeo) { sGeo = c.geometry; sMat = c.material; }
+            if (c.isMesh && !sGeo) { sGeo = c.geometry; }
         });
-        braidEnd?.traverse(c => {
-            if (c.isMesh && !eGeo) { eGeo = c.geometry; eMat = c.material; }
-        });
-        return { segmentGeo: sGeo, segmentMat: sMat, endGeo: eGeo, endMat: eMat };
-    }, [braidSegment, braidEnd]);
+        return sGeo;
+    }, [braidSegment]);
 
     // --- PREMIUM BRAID SHADER ---
     const braidMaterial = useMemo(() => {
         const mat = new THREE.MeshStandardMaterial({
-            roughness: 0.3,
-            metalness: 0.1,
+            roughness: 0.6,
+            metalness: 0.05,
         });
 
         mat.onBeforeCompile = (shader) => {
@@ -257,11 +313,8 @@ function HairStrands({ stylePos, lengthPos, thicknessPos, hairPlacementPoints })
                 `
                 #include <begin_vertex>
                 
-                // Dynamic Sway (GPU-side for performance)
-                // The lower the segment (world Y), the more it sways
-                float swayAmount = (1.5 - position.y) * 0.05; 
-                transformed.x += sin(uTime * 2.0 + position.y * 5.0) * swayAmount;
-                transformed.z += cos(uTime * 1.5 + position.y * 5.0) * swayAmount;
+                // Static procedural logic only
+                transformed.xyz = transformed.xyz;
                 `
             ).replace(
                 '#include <uv_vertex>',
@@ -283,10 +336,8 @@ function HairStrands({ stylePos, lengthPos, thicknessPos, hairPlacementPoints })
                 `
                 #include <color_fragment>
                 
-                // Procedural Braid Pattern
-                // Creates diagonal "overlaps" common in 3-strand braids
-                float pattern = sin(vBraidUv.y * 60.0 + sin(vBraidUv.x * 10.0)) * 0.08;
-                diffuseColor.rgb += pattern;
+                // Static diffuse only
+                diffuseColor.rgb = diffuseColor.rgb;
 
                 // Fresnel Sheen
                 vec3 viewDir = normalize(cameraPosition - vWorldPos);
@@ -316,18 +367,21 @@ function HairStrands({ stylePos, lengthPos, thicknessPos, hairPlacementPoints })
 
 
     useEffect(() => {
-        if (!instancedMeshRef.current || !endInstancedMeshRef.current || !hairPlacementPoints || hairPlacementPoints.length === 0) return;
+        if (!instancedMeshRef.current || !hairPlacementPoints || hairPlacementPoints.length === 0) return;
         if (!THICKNESS_MAP || !THICKNESS_MAP[thicknessPos]) return;
 
-        if (!braidSegment || !braidEnd) return; // Guard for geometry access
+        if (!braidSegment) return; // Guard for geometry access
 
         // Dynamically calculate the actual height of the loaded braid segment
         const segmentGeo = braidSegment.children[0]?.geometry;
-        let originalHeight = 0.1; // fallback
+        let actualModelHeight = 0.1; // fallback
         if (segmentGeo) {
             if (!segmentGeo.boundingBox) segmentGeo.computeBoundingBox();
-            originalHeight = segmentGeo.boundingBox.max.y - segmentGeo.boundingBox.min.y;
+            actualModelHeight = segmentGeo.boundingBox.max.y - segmentGeo.boundingBox.min.y;
         }
+
+        // Force exactly half of the actual model's height per section for spacing & step calculation
+        const originalHeight = actualModelHeight * 0.5;
 
         const tScale = THICKNESS_MAP[thicknessPos][1]; // Get the thickness modifier
 
@@ -342,17 +396,24 @@ function HairStrands({ stylePos, lengthPos, thicknessPos, hairPlacementPoints })
             6: -2.0   // Hip
         };
         const targetFloorY = TARGET_FLOOR_Y_MAP[lengthPos] || 0.0;
-
-        // Base step size is proportional to thickness! Jumbo uses longer pieces than Micro.
-        const baseInitialStep = Math.max(0.015, tScale * 0.6);
+ 
+        // Dynamic Physics Constants: Thinner braids curve faster, Longer hair stretches more.
+        const tInverse = 1.0 - Math.min(0.8, tScale * 3.5); // 1.0 for Micro, ~0.2 for Jumbo
+        const lengthStretch = 0.9 + (lengthPos / 6) * 0.2; // Longer hair = more tension
+        const thicknessStretch = 0.75 + (tScale / 0.1) * 0.25; // Thinner hair = less squished texture
+        
+        const baseInitialStep = originalHeight * 0.72 * lengthStretch * thicknessStretch; // Spaced 20% (1/5) closer
+        
+        const gravityBiasStart = 0.4 + (tInverse * 0.3);
+        const gravityIncrement = 0.1 + (tInverse * 0.1);
 
         // Hoist math objects to prevent garbage collection pressure
         const matrix = new THREE.Matrix4();
         const currentPos = new THREE.Vector3();
         const currentDir = new THREE.Vector3();
         const gravity = new THREE.Vector3(0, -1, 0);
-        const headCenter = new THREE.Vector3(0, 1.5, 0);
-        const torsoCenter = new THREE.Vector3(0, 0.2, 0);
+        const headCenter = new THREE.Vector3(0, DEV_CONFIG?.headCenterY ?? 1.5, DEV_CONFIG?.headCenterZ ?? 0.0);
+        const torsoCenter = new THREE.Vector3(0, DEV_CONFIG?.torsoCenterY ?? 0.2, 0);
         const pushOutVec = new THREE.Vector3();
         const quaternion = new THREE.Quaternion();
         const scaleVecStrand = new THREE.Vector3();
@@ -360,94 +421,188 @@ function HairStrands({ stylePos, lengthPos, thicknessPos, hairPlacementPoints })
 
         const headRadius = DEV_CONFIG?.headRadius || 0.95;
         const torsoRadius = DEV_CONFIG?.torsoRadius || 1.25;
+        const torsoStretchX = DEV_CONFIG?.torsoStretchX ?? 1.5;
+        const torsoStretchZ = DEV_CONFIG?.torsoStretchZ ?? 1.5;
         const torsoPushOut = DEV_CONFIG?.torsoPushOut || 0.5;
 
         let segmentInstanceCount = 0;
 
         hairPlacementPoints.forEach((point, i) => {
-            currentPos.copy(point.position);
-            // Start direction: push out from normal slightly
-            currentDir.copy(point.normal).add(new THREE.Vector3(0, 0.2, 0)).normalize();
+            // Region-specific start direction adjustment for a premium, realistic draping layout:
+            const adjustedDir = point.normal.clone();
+            if (point.region === "top") {
+                adjustedDir.add(new THREE.Vector3(0, 0.12, 0)); // Crown volume lift
+            } else if (point.region === "sides") {
+                adjustedDir.add(new THREE.Vector3(0, -0.05, 0)); // Flat side framing
+            } else if (point.region === "back") {
+                adjustedDir.add(new THREE.Vector3(0, -0.15, 0)); // Straight neck drape
+            } else {
+                adjustedDir.add(new THREE.Vector3(0, 0.05, 0)); // Fallback
+            }
 
             const strandVariation = 0.8 + Math.random() * 0.4;
             const tScaleStrand = tScale * strandVariation;
             let step = baseInitialStep * strandVariation;
 
-            // ==========================================
-            // PHYSICS ENGINE & COLLISION LOOP
-            // ==========================================
-            // This loop builds the braid segment-by-segment.
-            // By building it in tiny pieces rather than one solid log, the braid can bend,
-            // curve, and drape organically around the body.
+            // 1. Pre-trace to determine exact segment count N for this specific strand
+            let tempPos = point.position.clone();
+            let tempDir = adjustedDir.clone().normalize();
+            let tempStep = step;
+            let N = 0;
 
-            for (let j = 0; j < 60; j++) {
+            for (let j = 0; j < 120; j++) {
+                N++;
+                tempPos.addScaledVector(tempDir, tempStep);
+                if (tempPos.y <= targetFloorY) break;
+                if (j > 4) tempStep *= 1.02;
+            }
+
+            // 2. Perform the high-fidelity tracing with our offset and draping logic
+            currentPos.copy(point.position);
+            currentDir.copy(adjustedDir).normalize();
+            step = baseInitialStep * strandVariation;
+            const segments = [];
+
+            for (let j = 0; j < N; j++) {
                 try {
-                    const gravityBias = Math.min(0.9, 0.3 + (j * 0.05));
-                    currentDir.lerp(gravity, gravityBias).normalize();
+                    let targetDir = new THREE.Vector3();
+                    let gravityBias = 1.0;
 
-                    quaternion.setFromUnitVectors(upVec, currentDir);
-                    // SQUISH MECHANICS:
-                    // We compress the Y-axis (length) of the raw 3D model so every piece is exactly 'step' units long.
-                    // We multiply by 1.25 to create a 25% overlap, preventing "dotted line" gaps between pieces.
-                    const ySquish = (step * 1.25) / originalHeight;
-                    scaleVecStrand.set(tScaleStrand, ySquish, tScaleStrand);
+                    if (j === 0) {
+                        // Only the starting segment curves out from the scalp
+                        targetDir.copy(point.normal).normalize();
+                        gravityBias = 0.0;
+                    } else if (point.region === "top" && j < 7) {
+                        // Top braids: transition smoothly to cascade over the sides
+                        const lateralX = Math.sign(point.position.x);
+                        // Curve outward laterally (X), slightly forward (Z) and downward (Y)
+                        targetDir.set(lateralX * 0.72, -0.62, 0.32).normalize();
+                        // Lerp gently to create a gorgeous, smooth arch cascading beside side braids
+                        gravityBias = 0.42;
+                    } else {
+                        // All other segments / regions fall vertically
+                        targetDir.set(0, -1, 0);
+                        gravityBias = 1.0;
+                    }
 
-                    matrix.compose(currentPos, quaternion, scaleVecStrand);
-                    instancedMeshRef.current.setMatrixAt(segmentInstanceCount++, matrix);
+                    // Curve & gravity interpolation:
+                    currentDir.lerp(targetDir, gravityBias).normalize();
 
-                    // Advance the cursor to the bottom of the current piece
+                    // Store trace segment
+                    segments.push({
+                        pos: currentPos.clone(),
+                        dir: currentDir.clone(),
+                        step: step,
+                        tScale: tScaleStrand
+                    });
+
+                    // Advance cursor
                     currentPos.addScaledVector(currentDir, step);
 
-                    // DYNAMIC FLOOR CHECK:
-                    // If this braid has reached the target physical height (e.g. Hip), stop growing it!
-                    if (currentPos.y <= targetFloorY) {
-                        break;
-                    }
+                    // Stop if floor reached
+                    if (currentPos.y <= targetFloorY) break;
 
-                    // COLLISION AVOIDANCE 1: HEAD & JAW
+                    // COLLISION: Head (Face and Head clipping avoidance)
                     const headDist = currentPos.distanceTo(headCenter);
-                    if (headDist < headRadius && currentPos.y > 0.0) { // Only check upper body
+                    // Use a slightly larger head radius in the front (face region) to steer braids in front of the face
+                    const dynamicHeadRadius = currentPos.z > 0.0 ? headRadius * 1.20 : headRadius;
+                    
+                    // Allow head collision down to the jaw/chin/neck area (y > -0.3)
+                    if (headDist < dynamicHeadRadius && currentPos.y > -0.3) {
                         pushOutVec.subVectors(currentPos, headCenter).normalize();
-                        currentPos.addScaledVector(pushOutVec, (headRadius - headDist) * 0.8);
-                        currentDir.lerp(pushOutVec, 0.3).normalize();
+                        
+                        // Enforce side-by-side falling: push braids laterally outward if they cluster near the face centerline
+                        if (currentPos.z > 0.0 && Math.abs(currentPos.x) < 0.3) {
+                            const lateralPush = (0.3 - Math.abs(currentPos.x)) * (tScaleStrand * 0.5);
+                            pushOutVec.x += currentPos.x >= 0 ? lateralPush : -lateralPush;
+                            pushOutVec.normalize();
+                        }
+
+                        currentPos.addScaledVector(pushOutVec, (dynamicHeadRadius - headDist) * 1.1); // Strong push out
+                        currentDir.lerp(pushOutVec, 0.5).normalize();
                     }
 
-                    // COLLISION AVOIDANCE 2: SHOULDERS & CHEST
-                    // This forces the hair to smoothly slide outwards and drape over the shoulders.
-                    const torsoDist = currentPos.distanceTo(torsoCenter);
-                    if (torsoDist < torsoRadius) {
-                        pushOutVec.subVectors(currentPos, torsoCenter).normalize();
-                        currentPos.addScaledVector(pushOutVec, (torsoRadius - torsoDist) * torsoPushOut);
-                        currentDir.lerp(pushOutVec, torsoPushOut).normalize();
+                    // COLLISION: Torso (Shoulders clipping avoidance) - Ellipsoidal math for X/Z stretch
+                    const rx = torsoRadius * torsoStretchX;
+                    const ry = torsoRadius;
+                    const rz = torsoRadius * torsoStretchZ;
+                    const dx = currentPos.x - torsoCenter.x;
+                    const dy = currentPos.y - torsoCenter.y;
+                    const dz = currentPos.z - torsoCenter.z;
+                    const normSq = (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry) + (dz * dz) / (rz * rz);
+                    
+                    if (normSq < 1.0) {
+                        const norm = Math.sqrt(normSq);
+                        // Calculate surface point along the ray from center
+                        const surfX = torsoCenter.x + (dx / norm) * rx;
+                        const surfY = torsoCenter.y + (dy / norm) * ry;
+                        const surfZ = torsoCenter.z + (dz / norm) * rz;
+                        
+                        pushOutVec.set(dx / (rx * rx), dy / (ry * ry), dz / (rz * rz)).normalize();
+                        
+                        currentPos.set(
+                            currentPos.x + (surfX - currentPos.x) * torsoPushOut * 1.2,
+                            currentPos.y + (surfY - currentPos.y) * torsoPushOut * 1.2,
+                            currentPos.z + (surfZ - currentPos.z) * torsoPushOut * 1.2
+                        );
+                        currentDir.lerp(pushOutVec, torsoPushOut * 1.2).normalize();
                     }
 
-                    // DYNAMIC LENGTH TENSION:
-                    // As the braid falls further from the scalp, gravity stretches it.
-                    // We multiply the step by 1.15 each loop so the bottom pieces are long and straight,
-                    // significantly reducing rendering cost while allowing tight curves at the root.
-                    step *= 1.15;
+                    if (j > 4) step *= 1.02; 
                 } catch (e) {
-                    continue;
+                    break;
                 }
             }
-            try {
-                // End cap follows the final direction
-                const finalScale = new THREE.Vector3(tScaleStrand, (step * 0.5) / originalHeight, tScaleStrand);
-                quaternion.setFromUnitVectors(upVec, currentDir);
-                matrix.compose(currentPos, quaternion, finalScale);
-                endInstancedMeshRef.current.setMatrixAt(i, matrix);
-            } catch (e) { }
+
+            // Now apply the segments with progressive tapering at the bottom and knotless start tapering!
+            const N_segs = segments.length;
+            const drawPos = new THREE.Vector3();
+            if (N_segs > 0) {
+                drawPos.copy(segments[0].pos);
+            }
+
+            segments.forEach((seg, k) => {
+                let taper = 1.0;
+                
+                // Bottom progressive taper (tips)
+                if (k === N_segs - 1) {
+                    taper = 0.22; // Last segment tapered to 22% thickness
+                } else if (k === N_segs - 2) {
+                    taper = 0.52; // Second to last segment tapered to 52% thickness
+                } else if (k === N_segs - 3) {
+                    taper = 0.80; // Third to last segment tapered to 80% thickness
+                }
+
+                quaternion.setFromUnitVectors(upVec, seg.dir);
+                
+                // SQUISH: Match segment height to step size using actual GLB height with a 25% connection overlap
+                let ySquish = (seg.step * 1.25) / actualModelHeight; 
+                
+                // Squish the starting segment (k === 0) Y-axis (height) to exactly 1/10th for a tight connection base
+                let segmentStepLength = seg.step;
+                if (k === 0) {
+                    ySquish *= 0.10;
+                    segmentStepLength *= 0.10;
+                }
+                
+                // Flatten the depth (Z-axis) of the braid model by 50% for a sleek, flat protective layout
+                const zFlatten = 0.5;
+                scaleVecStrand.set(seg.tScale * taper, ySquish, seg.tScale * taper * zFlatten);
+
+                matrix.compose(drawPos, quaternion, scaleVecStrand);
+                instancedMeshRef.current.setMatrixAt(segmentInstanceCount++, matrix);
+
+                // Advance the drawPos by the actual visual length of this segment
+                drawPos.addScaledVector(seg.dir, segmentStepLength);
+            });
         });
 
         // Set the final required instance counts
         instancedMeshRef.current.count = segmentInstanceCount;
-        endInstancedMeshRef.current.count = hairPlacementPoints.length;
-
         instancedMeshRef.current.instanceMatrix.needsUpdate = true;
-        endInstancedMeshRef.current.instanceMatrix.needsUpdate = true;
 
         // Fallback InstancedMesh (for when segments aren't loaded)
-        if (fallbackMeshRef.current && (!segmentGeo || !endGeo)) {
+        if (fallbackMeshRef.current && !segmentGeo) {
             const fallbackMatrix = new THREE.Matrix4();
             hairPlacementPoints.forEach((point, i) => {
                 const tScale = THICKNESS_MAP[thicknessPos][1];
@@ -461,17 +616,13 @@ function HairStrands({ stylePos, lengthPos, thicknessPos, hairPlacementPoints })
             fallbackMeshRef.current.count = hairPlacementPoints.length;
             fallbackMeshRef.current.instanceMatrix.needsUpdate = true;
         }
-    }, [hairPlacementPoints, lengthPos, thicknessPos, THICKNESS_MAP, segmentGeo, endGeo]);
+    }, [hairPlacementPoints, lengthPos, thicknessPos, THICKNESS_MAP, segmentGeo, DEV_CONFIG]);
 
     if (hairPlacementPoints.length === 0) return null;
 
-
-    if (segmentGeo && endGeo) {
+    if (segmentGeo) {
         return (
-            <group>
-                <instancedMesh ref={instancedMeshRef} args={[segmentGeo, braidMaterial, 30000]} />
-                <instancedMesh ref={endInstancedMeshRef} args={[endGeo, braidMaterial, 1000]} />
-            </group>
+            <instancedMesh ref={instancedMeshRef} args={[segmentGeo, braidMaterial, 30000]} />
         );
     } else {
         const color = (STYLE_COLORS && STYLE_COLORS[stylePos]) || '#2c1810';
@@ -507,7 +658,7 @@ function CameraFollowLight({ intensity = 1 }) {
  * It sets up the scene's lighting, camera controls, loads the head model, and renders the hair strands.
  */
 function ThreeDSceneContent({ isMobile }) {
-    const headGroupRef = useRef(null);
+    const [headGroup, setHeadGroup] = useState(null);
     const { stylePos, lengthPos, densityPos, theme, thicknessPos } = useHairStore(useShallow(state => ({
         stylePos: state.stylePos,
         lengthPos: state.lengthPos,
@@ -515,18 +666,19 @@ function ThreeDSceneContent({ isMobile }) {
         theme: state.theme,
         thicknessPos: state.thicknessPos
     })));
-    const { assets, debugRaycast, isEnabled: devEnabled } = useDevStore(useShallow(state => ({
+    const { assets, debugRaycast, isEnabled: devEnabled, DEV_CONFIG } = useDevStore(useShallow(state => ({
         assets: state.assets,
         debugRaycast: state.debugRaycast,
-        isEnabled: state.isEnabled
+        isEnabled: state.isEnabled,
+        DEV_CONFIG: state.DEV_CONFIG
     })));
 
     const maskPath = (devEnabled && debugRaycast)
-        ? (assets.uv_reference || "/textures/uv_reference.png")
-        : (assets.scalp_mask || "/textures/scalp_mask.jpeg");
+        ? (assets.scalp_uv_guide || "/textures/scalp_uv_guide.jpg")
+        : (assets.scalp_mask || "/textures/scalp_mask.jpg");
 
     const mask = useTexture(maskPath);
-    const hairPlacementPoints = useRaycastHairPlacement(headGroupRef, mask, stylePos, densityPos, assets.custombust);
+    const hairPlacementPoints = useRaycastHairPlacement(headGroup, mask, stylePos, densityPos, assets.custom_bust);
 
     const debugMeshRef = useRef();
     useEffect(() => {
@@ -561,7 +713,7 @@ function ThreeDSceneContent({ isMobile }) {
             <directionalLight position={[0, 5, -8]} intensity={2.5} color="#ffd700" />
             <CameraFollowLight intensity={0.6} />
             <OrbitControls enableDamping dampingFactor={0.15} target={[0, 1.5, 0]} maxPolarAngle={Math.PI / 1.5} minPolarAngle={0.2} minDistance={5} maxDistance={12} />
-            <HeadModel ref={headGroupRef} />
+            <HeadModel ref={setHeadGroup} />
             <HairStrands stylePos={stylePos} lengthPos={lengthPos} thicknessPos={thicknessPos} hairPlacementPoints={hairPlacementPoints} />
 
             {/* POST-PROCESSING - Throttled on mobile */}
@@ -570,7 +722,7 @@ function ThreeDSceneContent({ isMobile }) {
                     <Bloom
                         luminanceThreshold={1.0}
                         mipmapBlur
-                        intensity={0.5}
+                        intensity={0.2}
                         radius={0.4}
                     />
                 )}
@@ -581,10 +733,27 @@ function ThreeDSceneContent({ isMobile }) {
 
             {/* DEBUG VISUALIZATION: Render orbs at spawn points using InstancedMesh */}
             {devEnabled && debugRaycast && (
-                <instancedMesh ref={debugMeshRef} args={[null, null, 1000]}>
-                    <sphereGeometry args={[0.015, 8, 8]} />
-                    <meshBasicMaterial color="#FF6B00" />
-                </instancedMesh>
+                <>
+                    <instancedMesh ref={debugMeshRef} args={[null, null, 1000]}>
+                        <sphereGeometry args={[0.015, 8, 8]} />
+                        <meshBasicMaterial color="#FF6B00" />
+                    </instancedMesh>
+
+                    {/* Collision Boundaries */}
+                    <group opacity={0.3}>
+                        <mesh position={[0, DEV_CONFIG.headCenterY || 1.5, DEV_CONFIG.headCenterZ || 0.0]}>
+                            <sphereGeometry args={[DEV_CONFIG.headRadius || 0.95, 32, 32]} />
+                            <meshBasicMaterial color="#ff6b00" wireframe transparent opacity={0.3} />
+                        </mesh>
+                        <mesh 
+                            position={[0, DEV_CONFIG.torsoCenterY || 0.2, 0]}
+                            scale={[DEV_CONFIG.torsoStretchX || 1.5, 1, DEV_CONFIG.torsoStretchZ || 1.5]}
+                        >
+                            <sphereGeometry args={[DEV_CONFIG.torsoRadius || 1.25, 32, 32]} />
+                            <meshBasicMaterial color="#0066ff" wireframe transparent opacity={0.2} />
+                        </mesh>
+                    </group>
+                </>
             )}
         </>
     );
@@ -621,6 +790,7 @@ export function Experience() {
 }
 
 try {
-    useGLTF.preload('/models/boxbraid.glb');
-    useGLTF.preload('/models/boxbraidend.glb');
+    useGLTF.preload('/models/hair_box_mid.glb');
+    useGLTF.preload('/models/hair_twist_mid.glb');
+    useGLTF.preload('/models/hair_loc_mid.glb');
 } catch (e) { }

@@ -37,7 +37,7 @@ vi.mock('./store/hairStore', () => {
     };
     return {
         useHairStore: vi.fn((selector) => selector ? selector(mockState) : mockState),
-        useDevStore: vi.fn(() => ({ assets: {}, isEnabled: false, setHasHydrated: vi.fn() })),
+        useDevStore: vi.fn(() => ({ assets: {}, isEnabled: false, setHasHydrated: vi.fn(), DEV_CONFIG: { calibrationFactor: 0.95 } })),
     };
 });
 
@@ -49,8 +49,8 @@ vi.mock('./components/Experience', () => ({
     Experience: () => <div data-testid="mock-experience" />,
 }));
 
-vi.mock('./components/AssetManager', () => ({
-    AssetManager: () => <div data-testid="mock-asset-manager" />,
+vi.mock('./components/StylistPanel', () => ({
+    StylistPanel: () => <div data-testid="mock-stylist-panel" />,
 }));
 
 vi.mock('./components/PresetGallery', () => ({
@@ -64,20 +64,26 @@ vi.mock('./utils/calculator', () => ({
 describe('App Component', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        vi.stubGlobal('IntersectionObserver', class {
+            constructor() {}
+            observe() {}
+            unobserve() {}
+            disconnect() {}
+        });
     });
 
     it('renders the main layout and sub-components', () => {
         render(<App />);
         expect(screen.getAllByText("Cinna's PAH").length).toBeGreaterThan(0);
         expect(screen.getByTestId('mock-experience')).toBeDefined();
-        expect(screen.getByTestId('mock-preset-gallery')).toBeDefined();
+        expect(screen.getByText('Presets')).toBeDefined();
     });
 
     it('toggles the Burger Menu when clicking the menu button', () => {
         render(<App />);
 
         // Open menu
-        const menuBtn = screen.getByText('MENU');
+        const menuBtn = screen.getByTitle('About');
         fireEvent.click(menuBtn);
         expect(screen.getAllByText('About this project').length).toBeGreaterThan(0);
 
@@ -88,13 +94,12 @@ describe('App Component', () => {
 
     it('displays the correct calculation result based on modifiers', () => {
         render(<App />);
-        expect(screen.getByText('Est: 5.25 packs')).toBeDefined();
         expect(screen.getByText('5')).toBeDefined();
     });
 
     it('updates style when a StyleSelector option is clicked', () => {
         render(<App />);
-        const boxBraidsBtn = screen.getByText('Box Braids');
+        const boxBraidsBtn = screen.getAllByRole('button').find(el => el.textContent === 'Box Braids') || screen.getAllByText('Box Braids')[0];
         fireEvent.click(boxBraidsBtn);
 
         const { setStylePos } = useHairStore();

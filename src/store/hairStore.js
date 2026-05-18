@@ -125,13 +125,19 @@ export const useDevStore = create(
 
             DEV_CONFIG: {
                 headCenterY: 1.25,
+                headCenterZ: 0.0,
                 headRadius: 0.95,
                 torsoCenterY: 0.2,
                 torsoRadius: 1.25,
+                torsoStretchX: 1.5,
+                torsoStretchZ: 1.5,
                 torsoPushOut: 0.5,
                 partingRowMultiplier: 5,
                 partingPointMultiplier: 5,
                 thicknessDensityScale: true,
+                calibrationFactor: 0.95,
+                centerPartingWidth: 0.08,
+                partThickness: 0.08,
             },
 
             // Actions

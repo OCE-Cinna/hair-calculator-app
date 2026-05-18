@@ -8,7 +8,7 @@ A Semester 3 HBO-ICT student project at Fontys University of Applied Sciences. T
 - **Three.js (React Three Fiber)** — Procedural 3D rendering via `InstancedMesh`
 - **Zustand** — Decoupled state management (`useHairStore`, `useDevStore`)
 - **Tailwind CSS v4** — Glassmorphism design system with OKLCH color tokens
-- **Blender** — Custom low-poly asset modeling (`custombust.glb`, `boxbraid.glb`)
+- **Blender** — Custom low-poly asset modeling (`custom_bust.glb`, `hair_box_mid.glb`)
 
 ## Features
 
@@ -42,11 +42,11 @@ Place the following models in `public/models/` and textures in `public/textures/
 
 | File | Purpose |
 |------|---------|
-| `custombust.glb` | Base head and torso mesh |
-| `boxbraid.glb` / `boxbraidend.glb` | Box Braids segments |
+| `custom_bust.glb` | Base head and torso mesh |
+| `hair_box_mid.glb` / `boxbraidend.glb` | Box Braids segments |
 | `flatbraid.glb` / `flatbraidend.glb` | Knotless segments |
 | `twist.glb` / `twistend.glb` | Twists and Locs segments |
-| `scalp_mask.jpeg` | UV mask — white = spawn, black = part |
+| `scalp_mask.jpg` | UV mask — R (top), G (sides), B (back) spawn region mask |
 
 ### Scripts
 

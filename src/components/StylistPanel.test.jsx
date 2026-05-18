@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/react';
-import { AssetManager } from './AssetManager';
+import { StylistPanel } from './StylistPanel';
 import { useHairStore, useDevStore } from '../store/hairStore';
 
 // Mock the Zustand store
@@ -9,7 +9,7 @@ vi.mock('../store/hairStore', () => ({
     useDevStore: vi.fn(),
 }));
 
-describe('AssetManager JPEG Conversion', () => {
+describe('StylistPanel JPEG Conversion', () => {
     let mockSetAssetOverride;
 
     beforeEach(() => {
@@ -20,6 +20,16 @@ describe('AssetManager JPEG Conversion', () => {
             assets: {},
             setAssetOverride: mockSetAssetOverride,
             resetAssets: vi.fn(),
+            DEV_CONFIG: {
+                calibrationFactor: 0.95,
+                centerPartingWidth: 0.08,
+                partThickness: 0.08,
+                headCenterY: 1.25,
+                headRadius: 0.95,
+                torsoCenterY: 0.2,
+                torsoRadius: 1.25,
+                torsoPushOut: 0.5,
+            }
         });
         useHairStore.mockReturnValue({
             assets: {},
@@ -49,7 +59,7 @@ describe('AssetManager JPEG Conversion', () => {
     });
 
     it('should convert PNG to JPEG when uploaded to the scalp_mask slot', async () => {
-        const { container } = render(<AssetManager />);
+        const { container } = render(<StylistPanel />);
 
         // Open the drawer
         const settingsButton = container.querySelector('button');
@@ -57,7 +67,7 @@ describe('AssetManager JPEG Conversion', () => {
 
         // Find the scalp_mask input (using the label index or similar mapping)
         const inputs = container.querySelectorAll('input[type="file"]');
-        const scalpMaskInput = inputs[3]; // based on the order in the component
+        const scalpMaskInput = inputs[4]; // based on the order in the component
 
         const file = new File([''], 'test.png', { type: 'image/png' });
 
@@ -69,7 +79,7 @@ describe('AssetManager JPEG Conversion', () => {
     });
 
     it('should not convert GLB files and use raw Object URLs', async () => {
-        const { container } = render(<AssetManager />);
+        const { container } = render(<StylistPanel />);
 
         const settingsButton = container.querySelector('button');
         fireEvent.click(settingsButton);
@@ -80,6 +90,6 @@ describe('AssetManager JPEG Conversion', () => {
         const file = new File([''], 'model.glb', { type: 'model/gltf-binary' });
         fireEvent.change(bustInput, { target: { files: [file] } });
 
-        expect(mockSetAssetOverride).toHaveBeenCalledWith('custombust', 'blob:mock-url');
+        expect(mockSetAssetOverride).toHaveBeenCalledWith('custom_bust', 'blob:mock-url');
     });
 });
