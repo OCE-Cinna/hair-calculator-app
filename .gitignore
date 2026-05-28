@@ -13,8 +13,8 @@ dist-ssr
 *.local
 
 # Editor directories and files
-.vscode/*
-!.vscode/extensions.json
+.vscode/
+.github/
 .idea
 .DS_Store
 *.suo
@@ -22,3 +22,42 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Testing
+coverage/
+test_output.txt
+test_full_log.txt
+
+# Production
+build/
+.vercel
+.netlify
+
+# Vite
+.vite
+
+# Documents
+docs/
+*.pdf
+*.docx
+*.pptx
+*.xlsx
+*devlog*
+*DEVLOG*
+
+# AI Assistant Context
+.agents/
+
+# Planning & Reference
+Project Plan-1.pdf
+Projectplan.txt
+glassmorphism-reference.md
+TODO.md
+
+# Junk assets and backups
+src/assets/Untitled.blend*
+src/assets/*.jpeg
+src/assets/*.jpg
+src/assets/*.png
+src/App.jsx.old
+copilot-instruction.md

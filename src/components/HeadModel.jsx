@@ -1,64 +1,43 @@
-import React from 'react';
-import { useGLTF, useTexture } from '@react-three/drei';
+import React, { forwardRef } from 'react';
+import { useGLTF, useTexture, Center } from '@react-three/drei';
+import { useHairStore, useDevStore } from '../store/hairStore';
 import * as THREE from 'three';
 
-/**
- * Head model component that loads custombust.glb and applies scalp_mask.jpeg texture
- * Falls back to a simple sphere if model fails to load
- */
-export const HeadModel = React.forwardRef((props, ref) => {
-    let scene = null;
-    let texture = null;
+export const HeadModel = forwardRef((props, ref) => {
+    const { assets, debugRaycast, isEnabled: devEnabled } = useDevStore();
+    const { theme } = useHairStore();
 
-    try {
-        const gltf = useGLTF('/models/custombust.glb');
-        scene = gltf.scene;
-        texture = useTexture('/scalp_mask.jpeg');
-    } catch (error) {
-        console.warn('Failed to load custombust.glb, using fallback sphere:', error);
-    }
+    const bustPath = (devEnabled && assets.custombust) ? assets.custombust : "/models/custombust.glb";
+    const maskPath = (devEnabled && assets.scalp_mask) ? assets.scalp_mask : "/textures/scalp_mask.jpeg";
 
-    if (scene) {
-        // Clone the scene to avoid modifying the original
-        const clonedScene = scene.clone();
+    const { scene } = useGLTF(bustPath, 'https://www.gstatic.com/draco/versioned/decoders/1.5.5/');
+    const mask = useTexture(maskPath);
 
-        // Apply texture to the mesh
-        clonedScene.traverse((child) => {
-            if (child.isMesh) {
-                child.material.map = texture;
+    // Dynamic skin tone from CSS variable
+    React.useEffect(() => {
+        const style = getComputedStyle(document.documentElement);
+        const skinColor = style.getPropertyValue('--color-skin-fallback').trim() || "#774f34";
+        
+        scene.traverse((child) => {
+            if (child.isMesh && child.material) {
+                if (devEnabled && debugRaycast) {
+                    child.material.map = mask;
+                } else {
+                    child.material.map = null;
+                    child.material.color.set(skinColor);
+                    child.material.roughness = 0.6;
+                }
                 child.material.needsUpdate = true;
             }
         });
+    }, [scene, mask, devEnabled, debugRaycast, theme]);
 
-        return (
-            <group ref={ref} {...props}>
-                <primitive object={clonedScene} />
-            </group>
-        );
-    } else {
-        // Fallback to simple sphere
-        return (
-            <group ref={ref} {...props}>
-                <mesh position={[0, 2, 0]} scale={[1, 1.2, 1]}>
-                    <sphereGeometry args={[0.9, 32, 32]} />
-                    <meshStandardMaterial
-                        color="#8b5a3c"
-                        roughness={0.7}
-                        metalness={0.1}
-                        side={THREE.FrontSide}
-                    />
-                </mesh>
-            </group>
-        );
-    }
+    return (
+        <Center position={[0, 0, 0]} alignTop>
+            <primitive ref={ref} object={scene} {...props} />
+        </Center>
+    );
 });
 
-HeadModel.displayName = 'HeadModel';
-
-// Preload the GLTF and texture (only if they exist)
-try {
-    useGLTF.preload('/models/custombust.glb');
-    useTexture.preload('/scalp_mask.jpeg');
-} catch (error) {
-    console.warn('Preload failed:', error);
-}
+HeadModel.displayName = "HeadModel";
+useGLTF.preload("/models/custombust.glb");

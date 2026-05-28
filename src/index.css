@@ -1,1 +1,167 @@
 @import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-heading: 'Outfit', sans-serif;
+    --font-body: 'Inter', sans-serif;
+    
+    /* Main Layout */
+    --color-app-main: oklch(98% 0.01 60);
+    /* Very light warm off-white */
+    --color-brand: oklch(73.682% 0.16644 40.061);
+    /* Vibrant, consistent orange */
+
+    /* Text Colors */
+    --color-text-base: oklch(25% 0.02 20);
+    --color-text-muted: oklch(45% 0.02 20);
+    --color-text-faint: oklch(60% 0.02 20);
+    --color-text-faintest: oklch(75% 0.02 20);
+    --color-text-highlight: oklch(15% 0.02 20);
+
+    /* Backgrounds (Glassmorphism) */
+    --color-glass: oklch(100% 0 0 / 40%);
+    --color-glass-menu: oklch(100% 0 0 / 95%);
+    --color-glass-header: oklch(100% 0 0 / 40%);
+    --color-glass-footer: oklch(100% 0 0 / 50%);
+    --color-glass-panel: oklch(100% 0 0 / 60%);
+    --color-glass-panel-muted: oklch(95% 0.01 20 / 50%);
+    --color-glass-gallery: oklch(100% 0 0 / 20%);
+    --color-glass-selector: oklch(100% 0 0 / 50%);
+    --color-glass-hover: oklch(100% 0 0 / 50%);
+    --color-glass-input: oklch(98% 0 0 / 100%);
+
+    /* Borders */
+    --color-border-glass: oklch(100% 0 0 / 40%);
+    --color-border-glass-strong: oklch(100% 0 0 / 60%);
+    --color-border-divider: oklch(85% 0.01 20);
+    --color-border-divider-faint: oklch(92% 0.01 20);
+
+    /* Effects */
+    --shadow-glass: 0 20px 50px -12px oklch(0% 0 0 / 8%);
+    --shadow-panel: -5px 0 20px oklch(0% 0 0 / 3%);
+    --color-ring-offset: oklch(100% 0 0);
+    --color-canvas-bg: oklch(100% 0 0);
+    --shadow-brand-subtle: 0 4px 12px oklch(65% 0.25 50 / 20%);
+
+    /* Background Orbs */
+    --orb-blend: multiply;
+    --orb-opacity-low: 0.1;
+    --orb-opacity-mid: 0.15;
+
+    /* 3D Assets */
+    --color-skin-fallback: #774f34;
+    --color-hair-default: #1a1a1a;
+  }
+
+  .dark {
+    /* Main Layout */
+    --color-app-main: oklch(15% 0.02 30);
+    /* Deep rich brown-black */
+    --color-brand: oklch(73.682% 0.16644 40.061);
+
+    /* Text Colors */
+    --color-text-base: oklch(100% 0 0);
+    --color-text-muted: oklch(100% 0 0 / 70%);
+    --color-text-faint: oklch(100% 0 0 / 50%);
+    --color-text-faintest: oklch(100% 0 0 / 40%);
+    --color-text-highlight: oklch(100% 0 0 / 90%);
+
+    /* Backgrounds */
+    --color-glass: oklch(0% 0 0 / 40%);
+    --color-glass-menu: oklch(15% 0.02 30 / 95%);
+    --color-glass-header: oklch(100% 0 0 / 5%);
+    --color-glass-footer: oklch(0% 0 0 / 60%);
+    --color-glass-panel: oklch(100% 0 0 / 5%);
+    --color-glass-panel-muted: oklch(0% 0 0 / 20%);
+    --color-glass-gallery: oklch(100% 0 0 / 5%);
+    --color-glass-selector: oklch(0% 0 0 / 40%);
+    --color-glass-hover: oklch(100% 0 0 / 10%);
+    --color-glass-input: oklch(0% 0 0 / 40%);
+
+    /* Borders */
+    --color-border-glass: oklch(100% 0 0 / 10%);
+    --color-border-glass-strong: oklch(100% 0 0 / 15%);
+    --color-border-divider: oklch(100% 0 0 / 10%);
+    --color-border-divider-faint: oklch(100% 0 0 / 5%);
+
+    /* Effects */
+    --shadow-glass: 0 20px 50px -12px oklch(0% 0 0 / 40%);
+    --shadow-panel: -5px 0 20px oklch(0% 0 0 / 15%);
+    --color-ring-offset: oklch(0% 0 0 / 50%);
+    --color-canvas-bg: oklch(25% 0.01 20);
+    /* Slightly lighter for 3D depth */
+    --shadow-brand-subtle: 0 4px 12px oklch(65% 0.25 50 / 30%);
+
+    /* Background Orbs */
+    --orb-blend: screen;
+    --orb-opacity-low: 0.2;
+    --orb-opacity-mid: 0.3;
+
+    /* 3D Assets */
+    --color-skin-fallback: #774f34;
+    --color-hair-default: #1a1a1a;
+  }
+  body {
+    font-family: var(--font-body);
+    overflow: hidden;
+    height: 100%;
+    width: 100%;
+    position: fixed;
+  }
+
+  html {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+  }
+}
+
+@theme {
+  --color-app-main: var(--color-app-main);
+  --color-brand: var(--color-brand);
+  --color-text-base: var(--color-text-base);
+  --color-text-muted: var(--color-text-muted);
+  --color-text-faint: var(--color-text-faint);
+  --color-text-faintest: var(--color-text-faintest);
+  --color-text-highlight: var(--color-text-highlight);
+  --color-glass: var(--color-glass);
+  --color-glass-menu: var(--color-glass-menu);
+  --color-glass-header: var(--color-glass-header);
+  --color-glass-footer: var(--color-glass-footer);
+  --color-glass-panel: var(--color-glass-panel);
+  --color-glass-panel-muted: var(--color-glass-panel-muted);
+  --color-glass-gallery: var(--color-glass-gallery);
+  --color-glass-selector: var(--color-glass-selector);
+  --color-glass-hover: var(--color-glass-hover);
+  --color-glass-input: var(--color-glass-input);
+  --color-border-glass: var(--color-border-glass);
+  --color-border-glass-strong: var(--color-border-glass-strong);
+  --color-border-divider: var(--color-border-divider);
+  --color-border-divider-faint: var(--color-border-divider-faint);
+  --shadow-glass: var(--shadow-glass);
+  --shadow-panel: var(--shadow-panel);
+  --color-ring-offset: var(--color-ring-offset);
+  --color-canvas-bg: var(--color-canvas-bg);
+  --shadow-brand-subtle: var(--shadow-brand-subtle);
+  --mix-blend-orb: var(--orb-blend);
+  --opacity-orb-low: var(--orb-opacity-low);
+  --opacity-orb-mid: var(--orb-opacity-mid);
+  --color-skin-fallback: var(--color-skin-fallback);
+  --color-hair-default: var(--color-hair-default);
+}
+
+@layer utilities {
+  /* High performance glass for mobile - reduced blur intensity */
+  .glass-responsive {
+    backdrop-filter: blur(40px);
+  }
+
+  @media (max-width: 768px) {
+    .glass-responsive {
+      backdrop-filter: blur(12px);
+    }
+  }
+}
