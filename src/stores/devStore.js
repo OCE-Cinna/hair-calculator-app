@@ -10,6 +10,7 @@ export const useDevStore = create(
         (set) => ({
             isEnabled: false, // Global toggle for Dev Kit
             debugRaycast: false,
+            shouldBake: false,
             assets: {}, // Dynamic asset overrides
             bustCombos: [], // Saved bust + mask combinations
             _hasHydrated: false,
@@ -33,7 +34,8 @@ export const useDevStore = create(
 
             setIsDevEnabled: (val) => set({ isEnabled: val }),
             setDebugRaycast: (val) => set({ debugRaycast: val }),
-            setAssetOverride: (slot, url) => set((state) => ({
+            setShouldBake: (val) => set({ shouldBake: val }),
+            setAssetOverride: (slot, url) => set(state => ({
                 assets: { ...state.assets, [slot]: url }
             })),
             resetAssets: () => set({ assets: {} }),
