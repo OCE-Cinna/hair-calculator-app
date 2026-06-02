@@ -169,7 +169,7 @@ ControlCard.Slider = ({ id, min, max, step, value, onChange, onRelease, map, but
             [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-8
             [&::-webkit-slider-thumb]:w-8 [&::-webkit-slider-thumb]:rounded-full
             [&::-webkit-slider-thumb]:bg-brand [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-white
-            [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(255,107,0,0.5)] [&::-webkit-slider-thumb]:mt-1
+            [&::-webkit-slider-thumb]:shadow-[0_0_10px_rgba(255,107,0,0.5)] [&::-webkit-slider-thumb]:-mt-4
             [&::-moz-range-thumb]:h-8 [&::-moz-range-thumb]:w-8
             [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-brand
             [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-white
