@@ -14,33 +14,38 @@ export const CONFIG_MAPS = {
         4: '#4c423b'  // Ash / Dark Grey
     },
     STYLE_MAP: {
-        1: ['Box Braids', 1.0],
-        2: ['Knotless', 1.2],
-        3: ['Twists', 0.9],
-        4: ['Locs', 1.1],
+        //  key: [label,        packMult, thickness, length, density]
+        //                               pos 1-6     pos 1-6  pos 1-5
+        //  Thickness: 1=Micro 2=Small 3=Smedium 4=Medium 5=Large 6=Jumbo
+        //  Length:    1=Ear   2=Jaw   3=Shoulder 4=Mid-back 5=Waist 6=Hip
+        //  Density:   1=Very Low 2=Low 3=Medium 4=Full 5=Very Full
+        1: ['Box Braids', 1.0, 4, 3, 3], // Medium / Shoulder / Medium
+        2: ['Knotless', 1.2, 3, 3, 4], // Smedium / Shoulder / Full  (smaller, fuller look)
+        3: ['Twists', 0.9, 4, 3, 3], // Medium / Shoulder / Medium (same weight feel)
+        4: ['Locs', 1.1, 3, 5, 2], // Smedium / Waist / Low      (longer, sparser)
     },
     THICKNESS_MAP: {
-        1: ['Micro', 0.02],
-        2: ['Small', 0.04],
-        3: ['Smedium', 0.05],
-        4: ['Medium', 0.07],
-        5: ['Large', 0.12],
-        6: ['Jumbo', 0.25],
+        1: ['Micro', 0.29],    // 0.02 / 0.07
+        2: ['Small', 0.57],    // 0.04 / 0.07
+        3: ['Smedium', 0.71],  // 0.05 / 0.07
+        4: ['Medium', 1.0],    // Baseline
+        5: ['Large', 1.71],    // 0.12 / 0.07
+        6: ['Jumbo', 3.57],    // 0.25 / 0.07
     },
     LENGTH_MAP: {
-        1: ['Ear', 0.8],
-        2: ['Jaw', 1.0],
-        3: ['Shoulder', 1.2],
-        4: ['Mid-back', 1.4],
-        5: ['Waist', 1.7],
-        6: ['Hip', 2.0],
+        1: ['Ear (10")', 0.4],       // < Half pack
+        2: ['Jaw (12")', 0.5],       // Half pack
+        3: ['Shoulder (24")', 1.0],  // 1 pack folded in half (Baseline)
+        4: ['Mid-back (30")', 1.25], // 1.25 packs
+        5: ['Waist (36")', 1.5],     // 1.5 packs
+        6: ['Hip (48")', 2.0],       // Doubled packs
     },
     DENSITY_MAP: {
-        1: ['Very Low', 0.6],
-        2: ['Low', 0.8],
+        1: ['Very Low', 0.5],
+        2: ['Low', 0.7],
         3: ['Medium', 1.0],
-        4: ['Full', 1.2],
-        5: ['Very Full', 1.4],
+        4: ['Full', 2.0],
+        5: ['Very Full', 3.0],
     },
 };
 
@@ -55,7 +60,7 @@ export const useHairStore = create(
             stylePos: 1,
             thicknessPos: 4,
             lengthPos: 3,
-            densityPos: 4,
+            densityPos: 3,
             theme: 'system', // 'light', 'dark', or 'system'
             customPresets: [], // Stores user-created presets
             _hasHydrated: false,
@@ -69,6 +74,13 @@ export const useHairStore = create(
             DENSITY_MAP: CONFIG_MAPS.DENSITY_MAP,
 
             // --- Actions ---
+            // selectStyle: sets style + applies that style's bundled defaults
+            selectStyle: (pos) => set({
+                stylePos: pos,
+                thicknessPos: CONFIG_MAPS.STYLE_MAP[pos]?.[2] ?? 4,
+                lengthPos: CONFIG_MAPS.STYLE_MAP[pos]?.[3] ?? 3,
+                densityPos: CONFIG_MAPS.STYLE_MAP[pos]?.[4] ?? 3,
+            }),
             setStylePos: (pos) => set({ stylePos: pos }),
             setThicknessPos: (pos) => set({ thicknessPos: pos }),
             setLengthPos: (pos) => set({ lengthPos: pos }),
@@ -91,7 +103,7 @@ export const useHairStore = create(
                 stylePos: 1,
                 thicknessPos: 4,
                 lengthPos: 3,
-                densityPos: 4,
+                densityPos: 3,
             })
         }),
         {
@@ -121,6 +133,7 @@ export const useDevStore = create(
             isEnabled: false, // Global toggle for Dev Kit
             debugRaycast: false,
             assets: {}, // Dynamic asset overrides
+            bustCombos: [], // Saved bust + mask combinations
             _hasHydrated: false,
 
             DEV_CONFIG: {
@@ -135,25 +148,64 @@ export const useDevStore = create(
                 partingRowMultiplier: 5,
                 partingPointMultiplier: 5,
                 thicknessDensityScale: true,
-                calibrationFactor: 0.95,
+                calibrationFactor: 0.95, // Resetting back up since the length multiplier for the 1.0 baseline is now larger in relation to the others
                 centerPartingWidth: 0.08,
                 partThickness: 0.08,
             },
 
-            // Actions
             setIsDevEnabled: (val) => set({ isEnabled: val }),
             setDebugRaycast: (val) => set({ debugRaycast: val }),
-            setAssetOverride: (slot, url) => set((state) => ({ 
-                assets: { ...state.assets, [slot]: url } 
+            setAssetOverride: (slot, url) => set((state) => ({
+                assets: { ...state.assets, [slot]: url }
             })),
             resetAssets: () => set({ assets: {} }),
             updateDevConfig: (key, val) => set((state) => ({
                 DEV_CONFIG: { ...state.DEV_CONFIG, [key]: val }
             })),
+            resetDevConfig: () => set({
+                DEV_CONFIG: {
+                    headCenterY: 1.25,
+                    headCenterZ: 0.0,
+                    headRadius: 0.95,
+                    torsoCenterY: 0.2,
+                    torsoRadius: 1.25,
+                    torsoStretchX: 1.5,
+                    torsoStretchZ: 1.5,
+                    torsoPushOut: 0.5,
+                    partingRowMultiplier: 5,
+                    partingPointMultiplier: 5,
+                    thicknessDensityScale: true,
+                    calibrationFactor: 0.95,
+                    centerPartingWidth: 0.08,
+                    partThickness: 0.08,
+                }
+            }),
+
+            // Bust Combo CRUD
+            addBustCombo: (combo) => set((state) => ({
+                bustCombos: [...(state.bustCombos || []), combo]
+            })),
+            deleteBustCombo: (id) => set((state) => ({
+                bustCombos: state.bustCombos.filter(c => c.id !== id)
+            })),
+            applyBustCombo: (combo) => set((state) => ({
+                assets: {
+                    ...state.assets,
+                    custom_bust: combo.bustUrl,
+                    scalp_mask: combo.maskUrl,
+                }
+            })),
+
             setHasHydrated: (state) => set({ _hasHydrated: state }),
         }),
         {
             name: 'hair-dev-storage',
+            partialize: (state) => ({
+                isEnabled: state.isEnabled,
+                debugRaycast: state.debugRaycast,
+                DEV_CONFIG: state.DEV_CONFIG,
+                bustCombos: state.bustCombos,
+            }),
             onRehydrateStorage: () => (state) => {
                 state?.setHasHydrated(true);
             },

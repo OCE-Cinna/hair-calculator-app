@@ -48,7 +48,7 @@ export const PresetGallery = ({ presets, onSelectPreset, activePresetId, isVisib
     };
 
     return (
-        <div className="px-8 py-5 transition-all duration-500 overflow-hidden">
+        <div className="px-3 py-4 transition-all duration-500 overflow-hidden">
             <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-4">
                     <button
@@ -82,7 +82,7 @@ export const PresetGallery = ({ presets, onSelectPreset, activePresetId, isVisib
             <div className={`transition-all duration-500 ease-in-out ${isVisible ? 'max-h-64 opacity-100 mt-2' : 'max-h-0 opacity-0 mt-0'}`}>
                 <div
                     ref={scrollRef}
-                    className="flex gap-3 overflow-x-auto pb-2 scroll-smooth"
+                    className="flex gap-4 overflow-x-auto px-3 pt-3 pb-4 scroll-smooth"
                     style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                 >
                     {presets.map(preset => (

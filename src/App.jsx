@@ -90,8 +90,8 @@ const BurgerMenu = ({ isOpen, onClose }) => {
               <div className="flex items-center gap-3">
                 <Settings className={`w-5 h-5 ${isDevEnabled ? 'animate-spin-slow' : ''}`} />
                 <div className="text-left">
-                  <p className="font-bold text-sm">Stylist Mode</p>
-                  <p className="text-[10px] uppercase tracking-wider opacity-60">Calibration & Dev Kit</p>
+                  <p className="font-bold text-sm">Dev Kit</p>
+                  <p className="text-[10px] uppercase tracking-wider opacity-60">Engine & overrides</p>
                 </div>
               </div>
               <div className={`w-10 h-5 rounded-full relative transition-colors ${isDevEnabled ? 'bg-brand' : 'bg-glass-input'}`}>
@@ -192,6 +192,8 @@ ControlCard.StyleSelector = ({ value, onChange, map }) => {
   const options = Object.keys(map).map(key => ({ id: Number(key), label: map[key][0] }));
   
   const handleSelect = (id) => {
+    // Only allow Box Braids (id 1) to be selected for now
+    if (id !== 1) return;
     onChange(id);
     if (window.navigator.vibrate) window.navigator.vibrate(5);
   };
@@ -201,16 +203,29 @@ ControlCard.StyleSelector = ({ value, onChange, map }) => {
       {options.map(opt => (
         <motion.button
           key={opt.id}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
+          whileHover={opt.id === 1 ? { scale: 1.02 } : {}}
+          whileTap={opt.id === 1 ? { scale: 0.98 } : {}}
           type="button"
           onClick={() => handleSelect(opt.id)}
-          className={`grow py-2.5 px-1.5 text-center font-bold text-xs rounded-md cursor-pointer transition-all duration-300 whitespace-nowrap ${value === opt.id
-            ? 'bg-brand text-white shadow-brand-subtle'
-            : 'text-text-faint bg-transparent border-none hover:text-text-highlight hover:bg-glass-hover'
+          className={`relative grow py-2.5 px-1.5 text-center font-bold text-xs rounded-md transition-all duration-300 whitespace-nowrap group ${value === opt.id
+            ? 'bg-brand text-white shadow-brand-subtle cursor-default'
+            : opt.id !== 1 
+              ? 'text-text-muted bg-transparent border-none opacity-50 cursor-not-allowed'
+              : 'text-text-faint bg-transparent border-none hover:text-text-highlight hover:bg-glass-hover cursor-pointer'
             }`}
         >
           {opt.label}
+          
+          {/* Tooltip for disabled styles */}
+          {opt.id !== 1 && (
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+              <div className="bg-glass-menu backdrop-blur-xl border border-border-glass-strong rounded-lg px-2.5 py-1.5 shadow-glass text-[10px] text-text-faint font-normal tracking-wide">
+                IN DEVELOPMENT
+                {/* Pointer */}
+                <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-px border-4 border-transparent border-t-border-glass-strong" />
+              </div>
+            </div>
+          )}
         </motion.button>
       ))}
     </div>
@@ -301,12 +316,16 @@ ControlCard.Slider = ({ id, min, max, step, value, onChange, map, buttonLabels }
         />
       </div>
 
-      <div className="flex justify-between mt-3 text-sm text-text-faint font-bold transition-colors">
-        {labels.map((label, i) => (
-          <span key={i} className="text-center flex-1 px-1 whitespace-nowrap">
-            {label.length > 3 ? label.replace(' ', '\u00a0') : label}
-          </span>
-        ))}
+      <div className="flex justify-between mt-3 text-[10px] lg:text-xs text-text-faint font-bold transition-colors">
+        {labels.map((label, i) => {
+          const parts = label.split(' ');
+          return (
+            <span key={i} className="text-center flex-1 px-0.5 leading-tight flex flex-col items-center justify-start">
+              <span>{parts[0]}</span>
+              {parts[1] && <span className="opacity-70 text-[9px] mt-0.5">{parts.slice(1).join(' ')}</span>}
+            </span>
+          );
+        })}
       </div>
     </div>
   );
@@ -317,14 +336,14 @@ ControlCard.Slider = ({ id, min, max, step, value, onChange, map, buttonLabels }
 // ============================================================
 function AppContent() {
   const {
-    stylePos, setStylePos,
+    stylePos, selectStyle,
     thicknessPos, setThicknessPos,
     lengthPos, setLengthPos,
     densityPos, setDensityPos,
     STYLE_MAP, THICKNESS_MAP, LENGTH_MAP, DENSITY_MAP,
   } = useHairStore(useShallow((state) => ({
     stylePos: state.stylePos,
-    setStylePos: state.setStylePos,
+    selectStyle: state.selectStyle,
     thicknessPos: state.thicknessPos,
     setThicknessPos: state.setThicknessPos,
     lengthPos: state.lengthPos,
@@ -351,7 +370,7 @@ function AppContent() {
     <div className="flex flex-col gap-3 h-full">
       <ControlCard title="Hair Customization" className="flex-1 min-h-0">
         <ControlCard.Section title="Braid Style">
-          <ControlCard.StyleSelector value={stylePos} onChange={setStylePos} map={STYLE_MAP} />
+          <ControlCard.StyleSelector value={stylePos} onChange={selectStyle} map={STYLE_MAP} />
         </ControlCard.Section>
 
         <ControlCard.Section title="Braid thickness">
@@ -403,8 +422,23 @@ function AppContent() {
       >
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-text-faint opacity-70 mb-0.5">Estimated</p>
-          <h3 className="text-base font-black text-text-base">Hair Packs</h3>
-          <p className="text-xs text-text-faint mt-0.5 font-medium">{packsResult.toFixed(2)} exact</p>
+          <div className="flex items-center gap-1.5 group relative cursor-help">
+            <h3 className="text-base font-black text-text-base">Hair Packs</h3>
+            <Info className="w-3.5 h-3.5 text-text-faintest group-hover:text-brand transition-colors" />
+            
+            {/* Tooltip */}
+            <div className="absolute bottom-full left-0 mb-2 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+              <div className="bg-glass-menu backdrop-blur-xl border border-border-glass-strong rounded-xl p-3 shadow-glass">
+                <p className="text-[10px] text-text-muted leading-relaxed">
+                  <strong className="text-text-base">1 Unit = ~50g Bundle</strong><br/>
+                  (e.g. half of a standard 2-bundle 46" pre-stretched X-pression pack). Baseline calculations are calibrated against Box Braids.
+                </p>
+                {/* Triangle pointer */}
+                <div className="absolute top-full left-6 -mt-px border-4 border-transparent border-t-border-glass-strong" />
+              </div>
+            </div>
+          </div>
+          <p className="text-[10px] text-text-faint mt-1 font-medium">{packsResult.toFixed(2)} exact bundles</p>
         </div>
         <AnimatePresence mode="wait">
           <motion.div
@@ -466,9 +500,9 @@ const LeftSidebar = ({ onOpenMenu, presetsOpen, onTogglePresets }) => {
       <button
         onClick={() => setIsDevEnabled(!isDevEnabled)}
         className={`${btnBase} ${isDevEnabled ? btnActive : btnIdle}`}
-        title={isDevEnabled ? 'Stylist Mode on' : 'Stylist Mode'}
+        title={isDevEnabled ? 'Dev Kit active' : 'Dev Kit'}
       >
-        <Wand2 className="h-5 w-5" />
+        <Settings className="h-5 w-5" />
       </button>
 
       <div className="flex-1" />
@@ -517,10 +551,10 @@ const PresetPanel = ({ presets, onSelectPreset, activePresetId }) => (
       <h3 className="text-xs font-bold text-text-base whitespace-nowrap">Presets</h3>
     </div>
     <div className="w-full h-px bg-divider-faint shrink-0" />
-    {/* Scroll area with bottom fade to hint more content */}
-    <div className="relative flex-1 min-h-0">
+    {/* Scroll area wrapper with rounded edges to softly clip scrolling items */}
+    <div className="relative flex-1 min-h-0 rounded-2xl overflow-hidden">
       <div
-        className="flex flex-col gap-2 overflow-y-auto h-full pb-8"
+        className="flex flex-col gap-3 overflow-y-auto h-full px-2 pt-2 pb-8"
         style={{ scrollbarWidth: 'none' }}
       >
         {presets.map(preset => {
@@ -546,9 +580,7 @@ const PresetPanel = ({ presets, onSelectPreset, activePresetId }) => (
             </button>
           );
         })}
-      </div>
-      {/* Scroll fade — tells the user there's more below */}
-      <div className="absolute bottom-0 left-0 right-0 h-14 bg-gradient-to-t from-[var(--color-glass-menu,rgba(0,0,0,0.4))] to-transparent pointer-events-none rounded-b-3xl" />
+    </div>
     </div>
   </motion.aside>
 );
@@ -598,15 +630,17 @@ export default function App() {
       <BurgerMenu isOpen={menuOpen} onClose={() => setMenuOpen(false)} />
       <StylistPanel />
 
-      <div className="bg-app-main h-screen flex overflow-hidden font-sans relative transition-colors duration-500">
+      <div className="bg-app-main h-[100dvh] flex overflow-hidden font-sans relative transition-colors duration-500">
         {/* Ambient orbs */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
           <div className="absolute top-[-10%] left-[-5%] w-[40vw] h-[40vw] bg-brand rounded-full mix-blend-orb filter blur-[120px] opacity-orb-low" />
           <div className="absolute bottom-[-10%] right-[-5%] w-[50vw] h-[50vw] bg-[var(--color-skin-fallback)] rounded-full mix-blend-orb filter blur-[150px] opacity-orb-mid" />
         </div>
 
-        {/* Layout: [left nav] [presets?] [3D] [form] */}
-        <div className="relative z-10 flex gap-3 p-3 w-full h-full overflow-hidden">
+        {/* ============================================================ */}
+        {/* DESKTOP LAYOUT (lg+): sidebar + presets + 3D + form side by side */}
+        {/* ============================================================ */}
+        <div className="relative z-10 hidden lg:flex gap-3 p-3 w-full h-full overflow-hidden">
 
           {/* LEFT sidebar */}
           <LeftSidebar
@@ -626,33 +660,77 @@ export default function App() {
             )}
           </AnimatePresence>
 
-          {/* 3D viewport — fills height, square-ish via aspect-square on height anchor */}
+          {/* 3D viewport — flexibly fills remaining space */}
           <motion.div
+            layout
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="h-full aspect-square shrink-0 bg-glass-panel glass-responsive border border-border-glass rounded-3xl overflow-hidden shadow-glass relative"
+            transition={{ 
+              layout: { duration: 0.28, ease: [0.22, 1, 0.36, 1] },
+              default: { duration: 0.7, ease: [0.22, 1, 0.36, 1] }
+            }}
+            className="flex-1 min-w-[300px] h-full bg-glass-panel glass-responsive border border-border-glass rounded-3xl overflow-hidden shadow-glass relative"
           >
             <Experience />
           </motion.div>
 
-          {/* Form + result — takes all remaining width */}
+          {/* Form + result — fixed width column so it never gets pushed off screen */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-            className="flex-1 min-w-0 h-full flex flex-col gap-3"
+            className="w-[340px] xl:w-[400px] shrink-0 h-full flex flex-col gap-3"
           >
             <AppContent />
           </motion.div>
+        </div>
 
-          {/* MOBILE header */}
-          <div className="lg:hidden fixed top-0 left-0 right-0 z-30 flex items-center justify-between px-4 py-3 bg-glass backdrop-blur-2xl border-b border-border-glass">
-            <button onClick={() => setMenuOpen(true)} className="p-2 rounded-xl hover:bg-glass-hover text-text-muted hover:text-text-base transition-colors">
+        {/* ============================================================ */}
+        {/* MOBILE LAYOUT (< lg): stacked vertical — 3D on top, form below */}
+        {/* ============================================================ */}
+        <div className="relative z-10 lg:hidden flex flex-col w-full h-full">
+
+          {/* Mobile top header */}
+          <div className="flex items-center justify-between px-4 py-3 bg-glass-header backdrop-blur-xl border-b border-border-glass shrink-0 z-30">
+            <button
+              onClick={() => setMenuOpen(true)}
+              className="p-2 rounded-xl bg-glass-hover text-text-muted active:scale-95 transition-all"
+              aria-label="Open menu"
+            >
               <Menu className="h-5 w-5" />
             </button>
-            <span className="font-black text-text-base tracking-tight">Cinna's PAH</span>
+            <div className="flex flex-col items-center">
+              <span className="font-black text-text-base tracking-tight text-sm leading-none">Cinna's PAH</span>
+              <span className="text-brand text-[10px] font-bold uppercase tracking-widest leading-none mt-0.5">Visualizer</span>
+            </div>
             <ThemeSwitcher />
+          </div>
+
+          {/* 3D Viewport — fixed height on mobile */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.97 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full shrink-0 bg-glass-panel border-b border-border-glass overflow-hidden shadow-glass relative"
+            style={{ height: '44dvh' }}
+          >
+            <Experience />
+          </motion.div>
+
+          {/* Scrollable form panel */}
+          <div className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
+            <div className="border-b border-border-glass-strong bg-glass-panel/30">
+              <PresetGallery
+                presets={allPresets}
+                onSelectPreset={handleSelectPreset}
+                activePresetId={activePresetId}
+                isVisible={presetsOpen}
+                onToggle={() => setPresetsOpen(v => !v)}
+              />
+            </div>
+            <div className="p-3 pb-6">
+              <AppContent />
+            </div>
           </div>
         </div>
       </div>
