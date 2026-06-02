@@ -674,8 +674,8 @@ function ThreeDSceneContent({ isMobile }) {
     })));
 
     const maskPath = (devEnabled && debugRaycast)
-        ? (assets.scalp_uv_guide || "/textures/scalp_uv_guide.jpg")
-        : (assets.scalp_mask || "/textures/scalp_mask.jpg");
+        ? (assets.scalp_uv_guide || "/textures/scalp_uv_guide.jpeg")
+        : (assets.scalp_mask || "/textures/scalp_mask.jpeg");
 
     const mask = useTexture(maskPath);
     const hairPlacementPoints = useRaycastHairPlacement(headGroup, mask, stylePos, densityPos, assets.custom_bust);

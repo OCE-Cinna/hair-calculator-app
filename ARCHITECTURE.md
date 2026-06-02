@@ -89,7 +89,7 @@ The algorithm:
 3. Symmetry enforcement: rows with more than one point are forced to even counts so every left-side braid has a mirror on the right.
 4. Alternating rows are offset by half a step (`thetaOffset`) to produce the brick-lay parting pattern standard in box braids.
 5. For each candidate point, a ray fires inward toward the head center and intersects the scalp mesh.
-6. If there is a hit, the UV coordinates are sampled against the `scalp_mask.jpg` texture loaded into a `<canvas>` element. The mask uses RGB channels to identify different scalp regions:
+6. If there is a hit, the UV coordinates are sampled against the `scalp_mask.jpeg` texture loaded into a `<canvas>` element. The mask uses RGB channels to identify different scalp regions:
    - **Red**: Top of the head
    - **Green**: Sides of the head
    - **Blue**: Back of the head
@@ -168,7 +168,7 @@ All runtime assets live in `public/` and are served statically:
 ```
 public/
 ├── models/         # .glb braid segments and bust
-├── textures/       # scalp_mask.jpg
+├── textures/       # scalp_mask.jpeg
 └── presets/        # preset preview images (.jpg)
 ```
 

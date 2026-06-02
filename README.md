@@ -46,7 +46,7 @@ Place the following models in `public/models/` and textures in `public/textures/
 | `hair_box_mid.glb` / `boxbraidend.glb` | Box Braids segments |
 | `flatbraid.glb` / `flatbraidend.glb` | Knotless segments |
 | `twist.glb` / `twistend.glb` | Twists and Locs segments |
-| `scalp_mask.jpg` | UV mask — R (top), G (sides), B (back) spawn region mask |
+| `scalp_mask.jpeg` | UV mask — R (top), G (sides), B (back) spawn region mask |
 
 ### Scripts
 

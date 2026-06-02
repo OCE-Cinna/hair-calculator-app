@@ -8,7 +8,7 @@ export const HeadModel = forwardRef((props, ref) => {
     const { theme } = useHairStore();
 
     const bustPath = (devEnabled && assets.custom_bust) ? assets.custom_bust : "/models/custom_bust.glb";
-    const maskPath = (devEnabled && assets.scalp_mask) ? assets.scalp_mask : "/textures/scalp_mask.jpg";
+    const maskPath = (devEnabled && assets.scalp_mask) ? assets.scalp_mask : "/textures/scalp_mask.jpeg";
 
     const { scene } = useGLTF(bustPath, 'https://www.gstatic.com/draco/versioned/decoders/1.5.5/');
     const mask = useTexture(maskPath);
