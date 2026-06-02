@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { PresetGallery } from './PresetGallery';
+import { PresetGallery } from '../components/PresetGallery';
 
 // Mock Lucide icons to avoid rendering complexities in tests
 vi.mock('lucide-react', () => ({

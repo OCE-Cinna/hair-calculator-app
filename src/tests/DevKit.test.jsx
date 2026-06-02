@@ -1,15 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/react';
-import { StylistPanel } from './StylistPanel';
-import { useHairStore, useDevStore } from '../store/hairStore';
+import { DevKit } from '../features/devkit/DevKit';
+import { useHairStore } from '../stores/hairStore';
+import { useDevStore } from '../stores/devStore';
 
 // Mock the Zustand store
-vi.mock('../store/hairStore', () => ({
+vi.mock('../stores/hairStore', () => ({
     useHairStore: vi.fn(),
+}));
+
+vi.mock('../stores/devStore', () => ({
     useDevStore: vi.fn(),
 }));
 
-describe('StylistPanel JPEG Conversion', () => {
+describe('DevKit JPEG Conversion', () => {
     let mockSetAssetOverride;
 
     beforeEach(() => {
@@ -17,7 +21,7 @@ describe('StylistPanel JPEG Conversion', () => {
         useDevStore.mockReturnValue({
             isEnabled: true,
             setIsDevEnabled: vi.fn(),
-            assets: {},
+            assets: {}, bustCombos: [],
             setAssetOverride: mockSetAssetOverride,
             resetAssets: vi.fn(),
             DEV_CONFIG: {
@@ -32,7 +36,7 @@ describe('StylistPanel JPEG Conversion', () => {
             }
         });
         useHairStore.mockReturnValue({
-            assets: {},
+            assets: {}, bustCombos: [],
             setAssetOverride: mockSetAssetOverride,
             resetAssets: vi.fn(),
             debugRaycast: false,
@@ -42,7 +46,7 @@ describe('StylistPanel JPEG Conversion', () => {
         });
 
         // Mock URL.createObjectURL
-        global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
+        window.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
 
         // Mock Canvas and Context for JPEG conversion
         vi.stubGlobal('Image', class {
@@ -59,7 +63,7 @@ describe('StylistPanel JPEG Conversion', () => {
     });
 
     it('should convert PNG to JPEG when uploaded to the scalp_mask slot', async () => {
-        const { container } = render(<StylistPanel />);
+        const { container } = render(<DevKit />);
 
         // Open the drawer
         const settingsButton = container.querySelector('button');
@@ -79,7 +83,7 @@ describe('StylistPanel JPEG Conversion', () => {
     });
 
     it('should not convert GLB files and use raw Object URLs', async () => {
-        const { container } = render(<StylistPanel />);
+        const { container } = render(<DevKit />);
 
         const settingsButton = container.querySelector('button');
         fireEvent.click(settingsButton);
@@ -93,3 +97,4 @@ describe('StylistPanel JPEG Conversion', () => {
         expect(mockSetAssetOverride).toHaveBeenCalledWith('custom_bust', 'blob:mock-url');
     });
 });
+

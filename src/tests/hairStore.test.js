@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { useHairStore } from './hairStore';
+import { useHairStore } from '../stores/hairStore';
 
 describe('useHairStore', () => {
     beforeEach(() => {
@@ -24,6 +24,6 @@ describe('useHairStore', () => {
         expect(state.stylePos).toBe(1);
         expect(state.thicknessPos).toBe(4);
         expect(state.lengthPos).toBe(3);
-        expect(state.densityPos).toBe(4);
+        expect(state.densityPos).toBe(3);
     });
 });

@@ -1,12 +1,12 @@
 # Procedural Braid Placement System
 
-Based on a review of [Experience.jsx](file:///c:/Users/Osiana/Documents/hair-calculator-app/src/components/Experience.jsx) and its associated components and store configs, the application constructs the scalp partings and procedures for spawning 3D hair through a two-stage pipeline: **Parting Generation** (CPU-side raycasting and masking) and **Procedural Hair Tracing** (Physics & InstancedMesh rendering).
+Based on a review of [Experience.jsx](file: ../hair-calculator-app/src/features/3d/Experience.jsx) and its associated components and store configs, the application constructs the scalp partings and procedures for spawning 3D hair through a two-stage pipeline: **Parting Generation** (CPU-side raycasting and masking) and **Procedural Hair Tracing** (Physics & InstancedMesh rendering).
 
 ---
 
 ### Phase 1: Generating the Partings (Spherical Raycasting & Masking)
 
-This logic is managed by the custom hook `useRaycastHairPlacement` on the CPU:
+This logic is managed by the custom hook `usePartingPattern` on the CPU:
 
 ```text
 [Spherical Ray Origins]
@@ -27,7 +27,7 @@ This logic is managed by the custom hook `useRaycastHairPlacement` on the CPU:
    - A ray is cast inward from each origin. If it intersects the head mesh, its UV coordinate is sampled.
 
 2. **Scalp Mask Processing**:
-   - The UV coordinate is mapped to a pixel coordinate on a `<canvas>` containing [scalp_mask.jpeg](file:///c:/Users/Osiana/Documents/hair-calculator-app/public/textures/scalp_mask.jpeg).
+   - The UV coordinate is mapped to a pixel coordinate on a `<canvas>` containing [scalp_mask.jpeg](file: ../hair-calculator-app/public/textures/scalp_mask.jpeg).
    - **RGB classification**:
      - **Red Channel (>128)**: Classifies the spawn point as the `top` region.
      - **Green Channel (>128)**: Classifies as `sides`.

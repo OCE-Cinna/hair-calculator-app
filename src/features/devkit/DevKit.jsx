@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion'; // eslint-disable-line no-unused-vars
 import {
     Terminal, Trash2, FileUp, RefreshCcw, Plus,
     Image as ImageIcon, Save, X, Layers, Check,
     ChevronDown, ChevronUp, RotateCcw
 } from 'lucide-react';
-import { useHairStore, useDevStore } from '../store/hairStore';
+import { useHairStore } from '../../stores/hairStore';
+import { useDevStore } from '../../stores/devStore';
 import { useShallow } from 'zustand/react/shallow';
 
 // ── Default DEV_CONFIG values (mirrors hairStore defaults for reset) ──────────
@@ -76,14 +77,13 @@ const Collapsible = ({ isOpen, children }) => (
 );
 
 // ─────────────────────────────────────────────────────────────────────────────
-export const DevKitPanel = () => {
+export const DevKit = () => {
     const {
         isEnabled,
         setIsDevEnabled,
         DEV_CONFIG,
         updateDevConfig,
-        resetDevConfig,
-        debugRaycast,
+                debugRaycast,
         setDebugRaycast,
         assets,
         setAssetOverride,
@@ -225,7 +225,7 @@ export const DevKitPanel = () => {
             initial={{ opacity: 0, x: 100 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 100 }}
-            className="fixed top-6 right-6 z-[100] w-80 max-h-[90vh] overflow-y-auto bg-glass-menu backdrop-blur-2xl border border-border-glass rounded-3xl shadow-glass p-5 text-text-base flex flex-col transition-colors"
+            className="fixed top-6 inset-x-4 sm:inset-x-auto sm:right-6 z-[100] sm:w-80 max-h-[90vh] overflow-y-auto bg-glass-menu backdrop-blur-2xl border border-border-glass rounded-3xl shadow-glass p-5 text-text-base flex flex-col transition-colors"
             style={{ scrollbarWidth: 'none' }}
         >
             {/* ── Panel header ── */}
@@ -485,5 +485,5 @@ export const DevKitPanel = () => {
     );
 };
 
-// Keep old export name for backwards compat during rename
-export const StylistPanel = DevKitPanel;
+
+

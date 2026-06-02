@@ -1,11 +1,11 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, it, vi, expect, beforeEach } from 'vitest';
-import { Experience } from './Experience';
+import { Experience } from '../features/3d/Experience';
 import * as THREE from 'three';
 
 // Mock HeadModel to provide a stable ref for raycasting logic
-vi.mock('./HeadModel', () => ({
+vi.mock('../features/3d/HeadModel', () => ({
     HeadModel: React.forwardRef((props, ref) => {
         const handle = React.useMemo(() => ({
             traverse: vi.fn(),
@@ -21,17 +21,26 @@ vi.mock('./HeadModel', () => ({
 }));
 
 // Mock the Zustand stores
-vi.mock('../store/hairStore', () => ({
-    useHairStore: vi.fn(() => ({
-        theme: 'dark',
-        stylePos: 1,
-        thicknessPos: 4,
-        lengthPos: 4,
-        densityPos: 4,
-        THICKNESS_MAP: { 4: ['Medium', 0.1] },
-        STYLE_COLORS: { 1: '#000000' },
-        DENSITY_COUNTS: { 4: 100 }
-    })),
+vi.mock('zustand/react/shallow', () => ({ useShallow: (fn) => fn }));
+vi.mock('../stores/hairStore', () => ({
+    useHairStore: vi.fn((selector) => {
+        const state = {
+            theme: 'dark', lightingMode: 'natural',
+            stylePos: 1,
+            thicknessPos: 4,
+            lengthPos: 4,
+            densityPos: 4,
+            THICKNESS_MAP: { 4: ['Medium', 0.1] },
+            STYLE_COLORS: { 1: '#000000' },
+            DENSITY_COUNTS: { 4: 100 },
+            showScalpPattern: false,
+            showBraids: true,
+            showOnlyRoots: false,
+        };
+        return selector ? selector(state) : state;
+    }),
+}));
+vi.mock('../stores/devStore', () => ({
     useDevStore: vi.fn(() => ({
         assets: {},
         debugRaycast: false,
@@ -86,6 +95,8 @@ vi.mock('@react-three/drei', () => ({
     Environment: () => null,
     ContactShadows: () => null,
     Center: ({ children }) => <>{children}</>,
+    GizmoHelper: () => null,
+    GizmoViewport: () => null
 }));
 
 // Mock THREE to avoid missing classes/methods
@@ -114,7 +125,7 @@ vi.mock('postprocessing', () => ({
 }));
 
 // Mock ExperienceErrorBoundary to avoid swallowing errors during tests
-vi.mock('./Experience', async (importOriginal) => {
+vi.mock('../features/3d/Experience', async (importOriginal) => {
     const actual = await importOriginal();
     return {
         ...actual,

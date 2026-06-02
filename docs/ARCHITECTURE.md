@@ -21,7 +21,7 @@ Data flows in one direction. The user moves a slider → Zustand updates → R3F
 
 ## State management
 
-Two Zustand stores in `src/store/hairStore.js`. They are intentionally separate so that calibration state (Stylist Mode) never pollutes the user's saved presets.
+Two Zustand stores in `src/stores/`. They are intentionally separate so that calibration state (Stylist Mode) never pollutes the user's saved presets.
 
 ### useHairStore
 
@@ -74,7 +74,7 @@ The `factor` parameter defaults to `0.95` but is exposed to Stylist Mode via `DE
 
 ## 3D rendering pipeline
 
-The scene lives inside `src/components/Experience.jsx`. It runs inside a React Three Fiber `<Canvas>` and communicates with the rest of the app exclusively through the Zustand stores.
+The scene lives inside `src/features/3d/Experience.jsx`. It runs inside a React Three Fiber `<Canvas>` and communicates with the rest of the app exclusively through the Zustand stores.
 
 ### Step 1 — Hair placement (raycasting)
 
@@ -151,13 +151,15 @@ On mobile (`/iPhone|iPad|iPod|Android/i`), Bloom and Noise are disabled. The `dp
 
 | Component | Responsibility |
 |-----------|---------------|
-| `App.jsx` | Root layout, BurgerMenu, ThemeSwitcher, ControlCard compound components |
-| `Experience.jsx` | R3F canvas, raycasting hook, physics loop, InstancedMesh |
-| `HeadModel.jsx` | GLTF loader, skin material, scalp mask texture |
-| `StylistPanel.jsx` | Stylist Mode UI — calibration sliders, asset upload, preset creator |
-| `PresetGallery.jsx` | Horizontal gallery, preset card display and selection |
-| `ThreeDCanvas.jsx` | Canvas configuration, lighting setup, postprocessing |
-| `HairModels.jsx` | GLTF model loader helpers and preloading |
+| `App.jsx` | Root application shell |
+| `src/layouts/LeftSidebar.jsx` | Left sidebar navigation and style presets toggle |
+| `src/layouts/PresetPanel.jsx` | Preset selection panel |
+| `src/components/ui/` | Reusable UI elements (BurgerMenu, ThemeSwitcher, etc) |
+| `src/features/3d/Experience.jsx` | R3F canvas, raycasting hook, physics loop, InstancedMesh |
+| `src/features/3d/HeadModel.jsx` | GLTF loader, skin material, scalp mask texture |
+| `src/features/devkit/DevKit.jsx` | Stylist Mode UI — calibration sliders, asset upload, preset creator |
+| `src/components/PresetGallery.jsx` | Horizontal gallery, preset card display and selection |
+| `src/features/calculator/HairPacksPanel.jsx` | Calculator results and parameters |
 
 ---
 
@@ -186,4 +188,4 @@ In Stylist Mode, any of these assets can be replaced at runtime via the file upl
 
 Tests use Vitest and React Testing Library. Three.js and R3F are mocked in `vite.config.js` to avoid WebGL context errors in the test environment. The formula in `calculator.js` is tested directly with known input/output pairs.
 
-Test files sit alongside the source files they cover (`*.test.jsx`, `*.test.js`).
+Test files sit in `src/tests/` directory (`*.test.jsx`, `*.test.js`).
