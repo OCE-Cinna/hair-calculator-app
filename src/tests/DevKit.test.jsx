@@ -46,7 +46,7 @@ describe('DevKit JPEG Conversion', () => {
         });
 
         // Mock URL.createObjectURL
-        global.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
+        window.URL.createObjectURL = vi.fn(() => 'blob:mock-url');
 
         // Mock Canvas and Context for JPEG conversion
         vi.stubGlobal('Image', class {
@@ -97,3 +97,4 @@ describe('DevKit JPEG Conversion', () => {
         expect(mockSetAssetOverride).toHaveBeenCalledWith('custom_bust', 'blob:mock-url');
     });
 });
+

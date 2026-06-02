@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion'; // eslint-disable-line no-unused-vars
 import { Info } from 'lucide-react';
 import { useHairStore } from '../../stores/hairStore';
 import { useDevStore } from '../../stores/devStore';
@@ -317,3 +317,4 @@ export function HairPacksPanel() {
     </div>
   );
 }
+

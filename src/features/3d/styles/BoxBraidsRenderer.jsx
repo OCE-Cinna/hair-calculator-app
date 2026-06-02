@@ -1,5 +1,5 @@
 import React, { useRef, useMemo, useEffect } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { useHairStore } from '../../../stores/hairStore';
@@ -19,8 +19,7 @@ const DRACO_DECODER = 'https://www.gstatic.com/draco/versioned/decoders/1.5.5/';
  * @param {Array} props.hairPlacementPoints - Target roots for spawning
  */
 export function BoxBraidsRenderer({ stylePos, lengthPos, thicknessPos, hairPlacementPoints }) {
-    const { camera } = useThree();
-    const { assets, isEnabled: devEnabled } = useDevStore(useShallow(state => ({
+        const { assets, isEnabled: devEnabled } = useDevStore(useShallow(state => ({
         assets: state.assets,
         isEnabled: state.isEnabled
     })));
@@ -115,6 +114,7 @@ export function BoxBraidsRenderer({ stylePos, lengthPos, thicknessPos, hairPlace
     useFrame((state) => {
         if (braidMaterial.userData.shader) {
             const time = state.clock.elapsedTime;
+            // eslint-disable-next-line react-hooks/immutability
             braidMaterial.userData.shader.uniforms.uTime.value = time;
             const color = (STYLE_COLORS && STYLE_COLORS[stylePos]) || '#2c1810';
             braidMaterial.userData.shader.uniforms.uBaseColor.value.set(color);
@@ -157,21 +157,19 @@ export function BoxBraidsRenderer({ stylePos, lengthPos, thicknessPos, hairPlace
         const targetFloorY = TARGET_FLOOR_Y_MAP[lengthPos] || 0.0;
  
         // Dynamic Physics Constants: Thinner braids curve faster, Longer hair stretches more.
-        const tInverse = 1.0 - Math.min(0.8, tScale * 3.5); // 1.0 for Micro, ~0.2 for Jumbo
-        const lengthStretch = 0.9 + (lengthPos / 6) * 0.2; // Longer hair = more tension
+                const lengthStretch = 0.9 + (lengthPos / 6) * 0.2; // Longer hair = more tension
         const thicknessStretch = 0.75 + (tScale / 0.1) * 0.25; // Thinner hair = less squished texture
         
         const baseInitialStep = originalHeight * 0.72 * lengthStretch * thicknessStretch; // Spaced 20% (1/5) closer
         
-        const gravityBiasStart = 0.4 + (tInverse * 0.3);
-        const gravityIncrement = 0.1 + (tInverse * 0.1);
+        
+        
 
         // Hoist math objects to prevent garbage collection pressure
         const matrix = new THREE.Matrix4();
         const currentPos = new THREE.Vector3();
         const currentDir = new THREE.Vector3();
-        const gravity = new THREE.Vector3(0, -1, 0);
-        const headCenter = new THREE.Vector3(0, DEV_CONFIG?.headCenterY ?? 1.5, DEV_CONFIG?.headCenterZ ?? 0.0);
+                const headCenter = new THREE.Vector3(0, DEV_CONFIG?.headCenterY ?? 1.5, DEV_CONFIG?.headCenterZ ?? 0.0);
         const torsoCenter = new THREE.Vector3(0, DEV_CONFIG?.torsoCenterY ?? 0.2, 0);
         const pushOutVec = new THREE.Vector3();
         const quaternion = new THREE.Quaternion();
@@ -186,7 +184,7 @@ export function BoxBraidsRenderer({ stylePos, lengthPos, thicknessPos, hairPlace
 
         let segmentInstanceCount = 0;
 
-        hairPlacementPoints.forEach((point, i) => {
+        hairPlacementPoints.forEach((point) => {
             // Region-specific start direction adjustment for a premium, realistic draping layout:
             const adjustedDir = point.normal.clone();
             if (point.region === "top") {
@@ -308,7 +306,7 @@ export function BoxBraidsRenderer({ stylePos, lengthPos, thicknessPos, hairPlace
                     }
 
                     if (j > 4) step *= 1.02; 
-                } catch (e) {
+                } catch (e) { console.error(e);
                     break;
                 }
             }
@@ -372,7 +370,7 @@ export function BoxBraidsRenderer({ stylePos, lengthPos, thicknessPos, hairPlace
             fallbackMeshRef.current.count = hairPlacementPoints.length;
             fallbackMeshRef.current.instanceMatrix.needsUpdate = true;
         }
-    }, [hairPlacementPoints, lengthPos, thicknessPos, THICKNESS_MAP, segmentGeo, DEV_CONFIG, showOnlyRoots]);
+    }, [hairPlacementPoints, lengthPos, thicknessPos, THICKNESS_MAP, segmentGeo, DEV_CONFIG, showOnlyRoots, braidSegment]);
 
     if (hairPlacementPoints.length === 0 || !showBraids) return null;
 
@@ -390,3 +388,4 @@ export function BoxBraidsRenderer({ stylePos, lengthPos, thicknessPos, hairPlace
         );
     }
 }
+

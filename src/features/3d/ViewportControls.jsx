@@ -2,7 +2,8 @@ import React from 'react';
 import { useHairStore } from '../../stores/hairStore';
 import { useShallow } from 'zustand/react/shallow';
 import { Grid, Scissors, AlignVerticalSpaceAround, Sun, Moon, Sparkles } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+// eslint-disable-next-line no-unused-vars
+import { AnimatePresence, motion } from 'framer-motion'; // eslint-disable-line no-unused-vars
 
 export const ViewportControls = () => {
     const { 
@@ -90,3 +91,4 @@ export const ViewportControls = () => {
         </div>
     );
 };
+

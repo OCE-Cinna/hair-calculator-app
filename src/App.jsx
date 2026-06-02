@@ -1,16 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Sparkles, Github, Info, Sun, Moon, Monitor, ChevronDown, ChevronUp, Settings, Layers, Wand2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Menu } from 'lucide-react';
+// eslint-disable-next-line no-unused-vars
+import { AnimatePresence, motion } from 'framer-motion'; // eslint-disable-line no-unused-vars
 import './App.css';
 import { useHairStore } from './stores/hairStore';
 import { useShallow } from 'zustand/react/shallow';
 import { Experience } from './features/3d/Experience';
-import { calculateHairPacks } from './utils/calculator';
 import { HairPacksPanel } from './features/calculator/HairPacksPanel';
-import { INITIAL_PRESETS, parsePresetFilename } from './constants/presets';
+import { INITIAL_PRESETS } from './constants/presets';
 import { PresetGallery } from './components/PresetGallery';
 import { DevKit } from './features/devkit/DevKit';
-import { useDevStore } from './stores/devStore';
 import { BurgerMenu } from './components/ui/BurgerMenu';
 import { ThemeSwitcher } from './components/ui/ThemeSwitcher';
 import { LeftSidebar } from './layouts/LeftSidebar';

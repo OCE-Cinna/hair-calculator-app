@@ -1,5 +1,6 @@
+import { motion, AnimatePresence } from 'framer-motion'; // eslint-disable-line no-unused-vars
 import React from 'react';
-import { motion } from 'framer-motion';
+
 import { parsePresetFilename } from '../constants/presets';
 
 export const PresetPanel = ({ presets, onSelectPreset, activePresetId }) => (
@@ -50,3 +51,4 @@ export const PresetPanel = ({ presets, onSelectPreset, activePresetId }) => (
     </div>
   </motion.aside>
 );
+

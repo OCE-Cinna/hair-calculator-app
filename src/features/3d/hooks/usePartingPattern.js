@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import * as THREE from 'three';
 import { useHairStore } from '../../../stores/hairStore';
 import { useDevStore } from '../../../stores/devStore';
@@ -34,26 +34,22 @@ export function usePartingPattern(headMesh, texture, stylePos, densityPos, bustP
     })));
 
     // Ref to store the static high-density candidate pool
-    const poolRef = useRef([]);
-    const [poolKey, setPoolKey] = useState(0);
+    const [candidatesPool, setCandidatesPool] = useState([]);
 
     // Part 1: Generate static candidate pool exactly once when geometry/texture changes
     useEffect(() => {
         if (!headMesh || !texture || !texture.image || texture.image.width === 0) {
-            if (poolRef.current.length > 0) {
-                poolRef.current = [];
-                setPoolKey(k => k + 1);
-            }
+// eslint-disable-next-line react-hooks/set-state-in-effect
+            setCandidatesPool([]);
             return;
         }
 
         let mesh = null;
         headMesh.traverse((child) => { if (child.isMesh) mesh = child; });
         if (!mesh || !mesh.geometry) {
-            if (poolRef.current.length > 0) {
-                poolRef.current = [];
-                setPoolKey(k => k + 1);
-            }
+             
+ 
+            setCandidatesPool([]);
             return;
         }
 
@@ -145,14 +141,13 @@ export function usePartingPattern(headMesh, texture, stylePos, densityPos, bustP
             });
         }
 
-        poolRef.current = candidates;
-        setPoolKey(k => k + 1);
+         
+        setCandidatesPool(candidates);
     }, [headMesh, texture, bustPath]);
 
     // Part 2: Synchronous filtering and spacing calculation using useMemo
     return useMemo(() => {
-        const candidates = poolRef.current;
-        if (candidates.length === 0) return [];
+        if (candidatesPool.length === 0) return [];
 
         let baseDensity = (DENSITY_COUNTS && DENSITY_COUNTS[densityPos]) ?? 42;
         const thicknessScale = (THICKNESS_MAP && THICKNESS_MAP[thicknessPos]) ? THICKNESS_MAP[thicknessPos][1] : 0.07;
@@ -167,7 +162,8 @@ export function usePartingPattern(headMesh, texture, stylePos, densityPos, bustP
         const targetPoints = [];
 
         // Process spacing and parting constraints on the pool
-        for (const candidate of candidates) {
+        const currentCandidates = candidatesPool;
+        for (const candidate of currentCandidates) {
             if (candidate.position.y <= candidate.yThreshold) continue;
 
             if (candidate.region === "top" && Math.abs(candidate.position.x) < centerPartingWidth) {
@@ -213,5 +209,7 @@ export function usePartingPattern(headMesh, texture, stylePos, densityPos, bustP
             sampledPoints.push(targetPoints[index]);
         }
         return sampledPoints;
-    }, [poolKey, densityPos, DENSITY_COUNTS, thicknessPos, THICKNESS_MAP, DEV_CONFIG]);
+    }, [candidatesPool, densityPos, DENSITY_COUNTS, thicknessPos, THICKNESS_MAP, DEV_CONFIG]);
 }
+
+

@@ -1,8 +1,8 @@
 import React, { forwardRef } from 'react';
-import { useGLTF, useTexture, Center } from '@react-three/drei';
+import { useGLTF, useTexture } from '@react-three/drei';
+import * as THREE from 'three';
 import { useHairStore } from '../../stores/hairStore';
 import { useDevStore } from '../../stores/devStore';
-import * as THREE from 'three';
 
 const DRACO_DECODER = 'https://www.gstatic.com/draco/versioned/decoders/1.5.5/';
 
@@ -54,3 +54,4 @@ export const HeadModel = forwardRef((props, ref) => {
 
 HeadModel.displayName = "HeadModel";
 useGLTF.preload("/models/custom_bust.glb", DRACO_DECODER);
+

@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Sparkles, Github, Info, Settings } from 'lucide-react';
+import { X, Info, Settings, Github, Sparkles } from 'lucide-react';
 import { useDevStore } from '../../stores/devStore';
 import { useShallow } from 'zustand/react/shallow';
 
@@ -129,3 +129,4 @@ export const BurgerMenu = ({ isOpen, onClose }) => {
     </>
   );
 };
+

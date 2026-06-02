@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion'; // eslint-disable-line no-unused-vars
 import {
     Terminal, Trash2, FileUp, RefreshCcw, Plus,
     Image as ImageIcon, Save, X, Layers, Check,
@@ -83,8 +83,7 @@ export const DevKit = () => {
         setIsDevEnabled,
         DEV_CONFIG,
         updateDevConfig,
-        resetDevConfig,
-        debugRaycast,
+                debugRaycast,
         setDebugRaycast,
         assets,
         setAssetOverride,
@@ -485,5 +484,6 @@ export const DevKit = () => {
         </motion.div>
     );
 };
+
 
 

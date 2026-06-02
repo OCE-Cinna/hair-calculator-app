@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import App from '../App';
 import { useHairStore } from '../stores/hairStore';
-import { calculateHairPacks } from '../utils/calculator';
+
 
 // Mock dependencies that are hard to test in JSDOM or involve 3D
 vi.mock('../stores/hairStore', () => {
@@ -119,3 +119,4 @@ describe('App Component', () => {
         expect(setThicknessPos).toHaveBeenCalledWith(6);
     });
 });
+

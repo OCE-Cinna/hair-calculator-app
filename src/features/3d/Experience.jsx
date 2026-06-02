@@ -106,13 +106,7 @@ function DynamicLighting({ isMobile }) {
  */
 function ThreeDSceneContent({ isMobile }) {
     const [headGroup, setHeadGroup] = useState(null);
-    const { stylePos, lengthPos, densityPos, theme, thicknessPos } = useHairStore(useShallow(state => ({
-        stylePos: state.stylePos,
-        lengthPos: state.lengthPos,
-        densityPos: state.densityPos,
-        theme: state.theme,
-        thicknessPos: state.thicknessPos
-    })));
+    const { theme } = useHairStore(useShallow(state => ({ theme: state.theme })));
     const { assets, debugRaycast, isEnabled: devEnabled, DEV_CONFIG } = useDevStore(useShallow(state => ({
         assets: state.assets,
         debugRaycast: state.debugRaycast,
@@ -153,6 +147,7 @@ function ThreeDSceneContent({ isMobile }) {
     useEffect(() => {
         const style = getComputedStyle(document.documentElement);
         const color = style.getPropertyValue('--color-canvas-bg').trim();
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (color) setBgColor(color);
     }, [theme]);
 
@@ -248,4 +243,5 @@ try {
     useGLTF.preload('/models/hair_box_mid.glb', DRACO_DECODER);
     useGLTF.preload('/models/hair_twist_mid.glb', DRACO_DECODER);
     useGLTF.preload('/models/hair_loc_mid.glb', DRACO_DECODER);
-} catch (e) { }
+} catch (e) { console.error(e); }
+
