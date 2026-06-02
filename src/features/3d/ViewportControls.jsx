@@ -33,12 +33,12 @@ export const ViewportControls = () => {
     return (
         <div className="absolute top-4 right-4 z-20 flex flex-col gap-2 pointer-events-auto">
             {/* Viewport UI Controls Group */}
-            <div className="bg-glass-panel glass-responsive backdrop-blur-md border border-border-glass rounded-2xl shadow-glass overflow-hidden flex flex-col p-1.5 gap-1.5">
+            <div className="bg-white/50 glass-responsive backdrop-blur-md border border-white/30 rounded-2xl shadow-glass overflow-hidden flex flex-col p-1.5 gap-1.5">
                 
                 {/* Scalp Pattern Toggle */}
                 <button
                     onClick={() => setShowScalpPattern(!showScalpPattern)}
-                    className={`p-2.5 rounded-xl transition-all group relative flex items-center justify-center ${showScalpPattern ? 'bg-brand text-white shadow-md' : 'hover:bg-glass-hover text-text-faint hover:text-text-base'}`}
+                    className={`p-2.5 rounded-xl transition-all group relative flex items-center justify-center ${showScalpPattern ? 'bg-brand text-white shadow-md' : 'hover:bg-white/40 text-stone-500 hover:text-stone-900'}`}
                     title="Toggle Parting Pattern"
                 >
                     <Grid className="w-5 h-5" />
@@ -47,7 +47,7 @@ export const ViewportControls = () => {
                 {/* Show Braids Toggle */}
                 <button
                     onClick={() => setShowBraids(!showBraids)}
-                    className={`p-2.5 rounded-xl transition-all group relative flex items-center justify-center ${showBraids ? 'bg-brand text-white shadow-md' : 'hover:bg-glass-hover text-text-faint hover:text-text-base'}`}
+                    className={`p-2.5 rounded-xl transition-all group relative flex items-center justify-center ${showBraids ? 'bg-brand text-white shadow-md' : 'hover:bg-white/40 text-stone-500 hover:text-stone-900'}`}
                     title="Toggle Braids Visibility"
                 >
                     <Scissors className="w-5 h-5" />
@@ -57,19 +57,19 @@ export const ViewportControls = () => {
                 <button
                     onClick={() => setShowOnlyRoots(!showOnlyRoots)}
                     disabled={!showBraids}
-                    className={`p-2.5 rounded-xl transition-all group relative flex items-center justify-center ${!showBraids ? 'opacity-30 cursor-not-allowed' : showOnlyRoots ? 'bg-brand/20 text-brand border border-brand/30 shadow-sm' : 'hover:bg-glass-hover text-text-faint hover:text-text-base'}`}
+                    className={`p-2.5 rounded-xl transition-all group relative flex items-center justify-center ${!showBraids ? 'opacity-30 cursor-not-allowed text-stone-500' : showOnlyRoots ? 'bg-brand/20 text-brand border border-brand/30 shadow-sm' : 'hover:bg-white/40 text-stone-500 hover:text-stone-900'}`}
                     title="Toggle Root Segments Only"
                 >
                     <AlignVerticalSpaceAround className="w-5 h-5" />
                 </button>
 
                 {/* Divider */}
-                <div className="w-full h-px bg-divider-faint/50 shrink-0 my-0.5" />
+                <div className="w-full h-px bg-stone-300/50 shrink-0 my-0.5" />
 
                 {/* Lighting Toggle */}
                 <button
                     onClick={toggleLighting}
-                    className="p-2.5 rounded-xl transition-all hover:bg-glass-hover text-text-faint hover:text-text-base"
+                    className="p-2.5 rounded-xl transition-all hover:bg-white/40 text-stone-500 hover:text-stone-900"
                     title={`Lighting: ${lightingMode.charAt(0).toUpperCase() + lightingMode.slice(1)}`}
                 >
                     <AnimatePresence mode="wait">
@@ -79,7 +79,7 @@ export const ViewportControls = () => {
                             animate={{ opacity: 1, scale: 1, rotate: 0 }}
                             exit={{ opacity: 0, scale: 0.5, rotate: 45 }}
                             transition={{ duration: 0.2 }}
-                            className="flex items-center justify-center text-text-base"
+                            className="flex items-center justify-center text-stone-600"
                         >
                             {lightingMode === 'natural' && <Sun className="w-5 h-5 text-amber-500" />}
                             {lightingMode === 'studio' && <Sparkles className="w-5 h-5 text-blue-400" />}
