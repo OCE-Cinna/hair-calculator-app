@@ -61,7 +61,7 @@ ControlCard.StyleSelector = ({ value, onChange, map }) => {
           whileTap={opt.id === 1 ? { scale: 0.98 } : {}}
           type="button"
           onClick={() => handleSelect(opt.id)}
-          className={`relative grow py-2.5 px-1.5 text-center font-bold text-xs rounded-md transition-all duration-300 whitespace-nowrap group ${value === opt.id
+          className={`relative grow py-2.5 px-1.5 text-center font-bold text-xs rounded-md transition-all duration-300 whitespace-nowrap group focus:outline-none ${value === opt.id
             ? 'bg-brand text-white shadow-brand-subtle cursor-default'
             : opt.id !== 1 
               ? 'text-text-muted bg-transparent border-none opacity-50 cursor-not-allowed'
@@ -72,7 +72,7 @@ ControlCard.StyleSelector = ({ value, onChange, map }) => {
           
           {/* Tooltip for disabled styles */}
           {opt.id !== 1 && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus:opacity-100 group-focus:visible group-active:opacity-100 group-active:visible transition-all duration-200 z-50 pointer-events-none">
               <div className="bg-glass-menu backdrop-blur-xl border border-border-glass-strong rounded-lg px-2.5 py-1.5 shadow-glass text-[10px] text-text-faint font-normal tracking-wide">
                 IN DEVELOPMENT
                 {/* Pointer */}
@@ -298,12 +298,12 @@ export function HairPacksPanel() {
       >
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-text-faint opacity-70 mb-0.5">Estimated</p>
-          <div className="flex items-center gap-1.5 group relative cursor-help">
+          <div tabIndex="0" className="flex items-center gap-1.5 group relative cursor-help focus:outline-none">
             <h3 className="text-base font-black text-text-base">Hair Packs</h3>
             <Info className="w-3.5 h-3.5 text-text-faintest group-hover:text-brand transition-colors" />
             
             {/* Tooltip */}
-            <div className="absolute bottom-full left-0 mb-2 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+            <div className="absolute bottom-full left-0 mb-2 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible group-focus:opacity-100 group-focus:visible group-active:opacity-100 group-active:visible transition-all duration-200 z-50 pointer-events-none">
               <div className="bg-glass-menu backdrop-blur-xl border border-border-glass-strong rounded-xl p-3 shadow-glass">
                 <p className="text-[10px] text-text-muted leading-relaxed">
                   <strong className="text-text-base">1 Unit = ~50g Bundle</strong><br/>
