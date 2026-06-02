@@ -70,7 +70,7 @@ export default function App() {
         {/* ============================================================ */}
         {/* UNIFIED RESPONSIVE LAYOUT */}
         {/* ============================================================ */}
-        <div className="relative z-10 flex flex-col lg:flex-row landscape:flex-row gap-0 lg:gap-3 landscape:gap-3 p-0 lg:p-3 landscape:p-3 w-full h-full overflow-hidden">
+        <div className="relative z-10 flex flex-col lg:flex-row landscape:flex-row justify-center gap-0 lg:gap-3 landscape:gap-3 p-0 lg:p-3 landscape:p-3 w-full h-full overflow-hidden max-w-[1600px] mx-auto">
           
           {/* MOBILE HEADER */}
           <div className="lg:hidden landscape:hidden flex items-center justify-between px-4 py-3 bg-glass-header backdrop-blur-xl border-b border-border-glass shrink-0 z-30">
