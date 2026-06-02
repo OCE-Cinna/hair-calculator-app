@@ -47,3 +47,7 @@ To massive performance gains and precise artistic control, we pivoted the 3D ren
 - **Blender Python Exporter:** Added `scripts/blender_export_partings.py` to allow artists to manually draw perfect "boxes" on a Shrinkwrapped grid in Blender and automatically export the center points and face normals to our JSON schema.
 - **TubeGeometry "Hair Cards":** Discarded flat 1px lines. The renderer now mathematically plots `CatmullRomCurve3` splines and extrudes a 3D `TubeGeometry` along them, visualizing accurate strand volume before the final braid assets are loaded.
 - **Regional Face Avoidance:** Rewrote the gravity physics algorithm. Strands spawned in the forehead region (`z > 0`) instantly sweep laterally to automatically keep the face clear, resolving previous "spider leg" clipping issues.
+- **Mobile UX Refinements:** Fixed issues with tooltips failing to trigger on touch devices. Corrected responsive scaling and alignment of viewport buttons (specifically fixing Edge/Chrome WebKit slider thumb alignment).
+- **UI Contrast & Theming:** Locked 3D Viewport controls to a high-contrast light theme to ensure visibility regardless of global dark mode settings.
+- **Texture UV Mapping:** Resolved `scalp_mask` projection issues; validated that the original UV mapping correctly aligns Top (Red), Sides (Green), and Back (Blue) without needing artificial texture rotation.
+- **AssetManager Sunset:** Completed the structural replacement of the legacy `StylistPanel` / `AssetManager` with the unified `DevKit` panel, removing obsolete UI components.
