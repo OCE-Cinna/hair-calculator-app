@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react';
-import { useGLTF, useTexture } from '@react-three/drei';
+import { useGLTF, useTexture, Center } from '@react-three/drei';
 import * as THREE from 'three';
 import { useHairStore } from '../../stores/hairStore';
 import { useDevStore } from '../../stores/devStore';
