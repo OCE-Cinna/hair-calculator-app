@@ -86,7 +86,7 @@ ControlCard.StyleSelector = ({ value, onChange, map }) => {
   );
 };
 
-ControlCard.Slider = ({ id, min, max, step, value, onChange, map, buttonLabels }) => {
+ControlCard.Slider = ({ id, min, max, step, value, onChange, onRelease, map, buttonLabels }) => {
   const labels = Object.keys(map).map(k => map[Number(k)][0]);
   const safeValue = Math.min(Math.max(value, min), max);
   const percentage = ((safeValue - min) / (max - min)) * 100;
@@ -96,11 +96,15 @@ ControlCard.Slider = ({ id, min, max, step, value, onChange, map, buttonLabels }
   };
 
   const decrement = () => {
-    onChange({ target: { value: Math.max(min, value - step) } });
+    const newVal = Math.max(min, value - step);
+    onChange({ target: { value: newVal } });
+    if (onRelease) onRelease(newVal);
     handleVibrate();
   };
   const increment = () => {
-    onChange({ target: { value: Math.min(max, value + step) } });
+    const newVal = Math.min(max, value + step);
+    onChange({ target: { value: newVal } });
+    if (onRelease) onRelease(newVal);
     handleVibrate();
   };
 
@@ -152,6 +156,9 @@ ControlCard.Slider = ({ id, min, max, step, value, onChange, map, buttonLabels }
           value={value}
           onChange={(e) => {
             onChange(e);
+          }}
+          onPointerUp={(e) => {
+            if (onRelease) onRelease(Number(e.target.value));
             handleVibrate();
           }}
           aria-label={id}
@@ -212,10 +219,18 @@ export function HairPacksPanel() {
 
   const { DEV_CONFIG } = useDevStore(useShallow(state => ({ DEV_CONFIG: state.DEV_CONFIG })));
 
+  const [localThickness, setLocalThickness] = React.useState(thicknessPos);
+  const [localLength, setLocalLength] = React.useState(lengthPos);
+  const [localDensity, setLocalDensity] = React.useState(densityPos);
+
+  React.useEffect(() => { setLocalThickness(thicknessPos); }, [thicknessPos]);
+  React.useEffect(() => { setLocalLength(lengthPos); }, [lengthPos]);
+  React.useEffect(() => { setLocalDensity(densityPos); }, [densityPos]);
+
   const styleVal = STYLE_MAP[stylePos]?.[1] || 1.0;
-  const thicknessVal = THICKNESS_MAP[thicknessPos]?.[1] || 1.0;
-  const lengthVal = LENGTH_MAP[lengthPos]?.[1] || 1.0;
-  const densityVal = DENSITY_MAP[densityPos]?.[1] || 1.0;
+  const thicknessVal = THICKNESS_MAP[localThickness]?.[1] || 1.0;
+  const lengthVal = LENGTH_MAP[localLength]?.[1] || 1.0;
+  const densityVal = DENSITY_MAP[localDensity]?.[1] || 1.0;
 
   const packsResult = calculateHairPacks(styleVal, thicknessVal, densityVal, lengthVal, DEV_CONFIG.calibrationFactor);
   const handleSlider = (setter) => (e) => setter(Number(e.target.value));
@@ -237,8 +252,9 @@ export function HairPacksPanel() {
             min={1}
             max={Object.keys(THICKNESS_MAP).length}
             step={1}
-            value={thicknessPos}
-            onChange={handleSlider(setThicknessPos)}
+            value={localThickness}
+            onChange={handleSlider(setLocalThickness)}
+            onRelease={setThicknessPos}
             map={THICKNESS_MAP}
             buttonLabels={['Smaller', 'Larger']}
           />
@@ -250,8 +266,9 @@ export function HairPacksPanel() {
             min={1}
             max={Object.keys(LENGTH_MAP).length}
             step={1}
-            value={lengthPos}
-            onChange={handleSlider(setLengthPos)}
+            value={localLength}
+            onChange={handleSlider(setLocalLength)}
+            onRelease={setLengthPos}
             map={LENGTH_MAP}
             buttonLabels={['Shorter', 'Longer']}
           />
@@ -263,8 +280,9 @@ export function HairPacksPanel() {
             min={1}
             max={Object.keys(DENSITY_MAP).length}
             step={1}
-            value={densityPos}
-            onChange={handleSlider(setDensityPos)}
+            value={localDensity}
+            onChange={handleSlider(setLocalDensity)}
+            onRelease={setDensityPos}
             map={DENSITY_MAP}
             buttonLabels={['Lower', 'Higher']}
           />
