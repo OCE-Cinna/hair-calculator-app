@@ -1,8 +1,8 @@
 export const STYLE_ALIASES = {
     lock: 4, locs: 4, loc: 4,
     twist: 3, twists: 3,
-    boxbraid: 2, box: 2, braid: 2,
-    knotless: 1,
+    boxbraid: 1, box: 1, braid: 1,
+    knotless: 2,
 };
 
 export const LENGTH_ALIASES = {

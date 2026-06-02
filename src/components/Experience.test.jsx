@@ -7,14 +7,15 @@ import * as THREE from 'three';
 // Mock HeadModel to provide a stable ref for raycasting logic
 vi.mock('./HeadModel', () => ({
     HeadModel: React.forwardRef((props, ref) => {
-        React.useImperativeHandle(ref, () => ({
+        const handle = React.useMemo(() => ({
             traverse: vi.fn(),
             isGroup: true,
             position: new THREE.Vector3(),
             rotation: new THREE.Euler(),
             scale: new THREE.Vector3(1, 1, 1),
             updateMatrixWorld: vi.fn(),
-        }));
+        }), []);
+        React.useImperativeHandle(ref, () => handle, [handle]);
         return <div data-testid="head-model" />;
     })
 }));

@@ -7,7 +7,7 @@ export const HeadModel = forwardRef((props, ref) => {
     const { assets, debugRaycast, isEnabled: devEnabled } = useDevStore();
     const { theme } = useHairStore();
 
-    const bustPath = (devEnabled && assets.custombust) ? assets.custombust : "/models/custombust.glb";
+    const bustPath = (devEnabled && assets.custom_bust) ? assets.custom_bust : "/models/custom_bust.glb";
     const maskPath = (devEnabled && assets.scalp_mask) ? assets.scalp_mask : "/textures/scalp_mask.jpeg";
 
     const { scene } = useGLTF(bustPath, 'https://www.gstatic.com/draco/versioned/decoders/1.5.5/');
@@ -33,11 +33,11 @@ export const HeadModel = forwardRef((props, ref) => {
     }, [scene, mask, devEnabled, debugRaycast, theme]);
 
     return (
-        <Center position={[0, 0, 0]} alignTop>
+        <Center>
             <primitive ref={ref} object={scene} {...props} />
         </Center>
     );
 });
 
 HeadModel.displayName = "HeadModel";
-useGLTF.preload("/models/custombust.glb");
+useGLTF.preload("/models/custom_bust.glb");
