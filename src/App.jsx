@@ -15,6 +15,7 @@ import { BurgerMenu } from './components/ui/BurgerMenu';
 import { ThemeSwitcher } from './components/ui/ThemeSwitcher';
 import { LeftSidebar } from './layouts/LeftSidebar';
 import { PresetPanel } from './layouts/PresetPanel';
+
 // ============================================================
 // ROOT APP
 // ============================================================
@@ -43,7 +44,7 @@ export default function App() {
   const allPresets = [...INITIAL_PRESETS, ...(customPresets || [])].map(p => ({
     ...p,
     image: p.image && !p.image.startsWith('http') && !p.image.startsWith('/presets/') && !p.image.startsWith('data:')
-      ? `/presets/${p.image.replace(/^\//, '')}`
+      ? /presets/ + p.image.replace(/^\//, '')
       : p.image
   }));
 
@@ -68,60 +69,12 @@ export default function App() {
         </div>
 
         {/* ============================================================ */}
-        {/* DESKTOP LAYOUT (lg+): sidebar + presets + 3D + form side by side */}
+        {/* UNIFIED RESPONSIVE LAYOUT */}
         {/* ============================================================ */}
-        <div className="relative z-10 hidden lg:flex landscape:flex gap-3 p-3 w-full h-full overflow-hidden">
-
-          {/* LEFT sidebar */}
-          <LeftSidebar
-            onOpenMenu={() => setMenuOpen(true)}
-            presetsOpen={presetsOpen}
-            onTogglePresets={() => setPresetsOpen(v => !v)}
-          />
-
-          {/* PRESET panel — second column, slides in/out */}
-          <AnimatePresence initial={false}>
-            {presetsOpen && (
-              <PresetPanel
-                presets={allPresets}
-                onSelectPreset={handleSelectPreset}
-                activePresetId={activePresetId}
-              />
-            )}
-          </AnimatePresence>
-
-          {/* 3D viewport — flexibly fills remaining space */}
-          <motion.div
-            layout
-            initial={{ opacity: 0, scale: 0.97 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ 
-              layout: { duration: 0.28, ease: [0.22, 1, 0.36, 1] },
-              default: { duration: 0.7, ease: [0.22, 1, 0.36, 1] }
-            }}
-            className="flex-1 min-w-[150px] lg:min-w-[300px] h-full bg-glass-panel glass-responsive border border-border-glass rounded-3xl overflow-hidden shadow-glass relative"
-          >
-            <Experience />
-          </motion.div>
-
-          {/* Form + result — fixed width column so it never gets pushed off screen */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.6, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-            className="w-[300px] sm:w-[340px] xl:w-[400px] shrink-0 h-full flex flex-col gap-3"
-          >
-            <HairPacksPanel />
-          </motion.div>
-        </div>
-
-        {/* ============================================================ */}
-        {/* MOBILE LAYOUT (< lg): stacked vertical — 3D on top, form below */}
-        {/* ============================================================ */}
-        <div className="relative z-10 lg:hidden landscape:hidden flex flex-col w-full h-full">
-
-          {/* Mobile top header */}
-          <div className="flex items-center justify-between px-4 py-3 bg-glass-header backdrop-blur-xl border-b border-border-glass shrink-0 z-30">
+        <div className="relative z-10 flex flex-col lg:flex-row landscape:flex-row gap-0 lg:gap-3 landscape:gap-3 p-0 lg:p-3 landscape:p-3 w-full h-full overflow-hidden">
+          
+          {/* MOBILE HEADER */}
+          <div className="lg:hidden landscape:hidden flex items-center justify-between px-4 py-3 bg-glass-header backdrop-blur-xl border-b border-border-glass shrink-0 z-30">
             <button
               onClick={() => setMenuOpen(true)}
               className="p-2 rounded-xl bg-glass-hover text-text-muted active:scale-95 transition-all"
@@ -136,20 +89,52 @@ export default function App() {
             <ThemeSwitcher />
           </div>
 
-          {/* 3D Viewport — fixed height on mobile */}
+          {/* DESKTOP SIDEBAR */}
+          <div className="hidden lg:flex landscape:flex shrink-0">
+            <LeftSidebar
+              onOpenMenu={() => setMenuOpen(true)}
+              presetsOpen={presetsOpen}
+              onTogglePresets={() => setPresetsOpen(v => !v)}
+            />
+          </div>
+
+          {/* DESKTOP PRESETS */}
+          <div className="hidden lg:flex landscape:flex shrink-0">
+            <AnimatePresence initial={false}>
+              {presetsOpen && (
+                <PresetPanel
+                  presets={allPresets}
+                  onSelectPreset={handleSelectPreset}
+                  activePresetId={activePresetId}
+                />
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* SHARED 3D VIEWPORT */}
           <motion.div
+            layout
             initial={{ opacity: 0, scale: 0.97 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-            className="w-full shrink-0 bg-glass-panel border-b border-border-glass overflow-hidden shadow-glass relative"
-            style={{ height: '44dvh' }}
+            transition={{ 
+              layout: { duration: 0.28, ease: [0.22, 1, 0.36, 1] },
+              default: { duration: 0.7, ease: [0.22, 1, 0.36, 1] }
+            }}
+            className="w-full lg:w-auto landscape:w-auto h-[44dvh] lg:h-full landscape:h-full shrink-0 flex-none lg:flex-1 landscape:flex-1 min-w-[150px] lg:min-w-[300px] bg-glass-panel glass-responsive border-b lg:border border-border-glass rounded-none lg:rounded-3xl landscape:rounded-3xl overflow-hidden shadow-glass relative z-10"
           >
             <Experience />
           </motion.div>
 
-          {/* Scrollable form panel */}
-          <div className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
-            <div className="border-b border-border-glass-strong bg-glass-panel/30">
+          {/* UNIFIED FORM COLUMN */}
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.6, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+            className="flex-1 w-full lg:w-[300px] xl:w-[400px] landscape:w-[300px] xl:landscape:w-[400px] shrink-0 flex flex-col gap-0 lg:gap-3 landscape:gap-3 overflow-y-auto lg:overflow-visible landscape:overflow-visible overscroll-contain z-10"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
+            {/* Mobile Preset Gallery */}
+            <div className="lg:hidden landscape:hidden border-b border-border-glass-strong bg-glass-panel/30 shrink-0">
               <PresetGallery
                 presets={allPresets}
                 onSelectPreset={handleSelectPreset}
@@ -158,10 +143,13 @@ export default function App() {
                 onToggle={() => setPresetsOpen(v => !v)}
               />
             </div>
-            <div className="p-3 pb-6">
+
+            {/* Hair Packs Panel */}
+            <div className="p-3 pb-6 lg:p-0 landscape:p-0 flex-1 flex flex-col">
               <HairPacksPanel />
             </div>
-          </div>
+          </motion.div>
+
         </div>
       </div>
     </>
