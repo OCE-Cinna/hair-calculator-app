@@ -62,6 +62,8 @@ export function usePartingPattern(headMesh, texture, stylePos, densityPos, bustP
         canvas.height = height;
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
         if (!ctx) return;
+        texture.flipY = false;
+        texture.needsUpdate = true;
         ctx.drawImage(texture.image, 0, 0);
         const imageData = ctx.getImageData(0, 0, width, height).data;
 
@@ -112,7 +114,7 @@ export function usePartingPattern(headMesh, texture, stylePos, densityPos, bustP
 
                         if (uv) {
                             const pixelX = Math.floor(uv.x * (width - 1));
-                            const pixelY = Math.floor((1 - uv.y) * (height - 1));
+                            const pixelY = Math.floor(uv.y * (height - 1));
                             const pixelIndex = (pixelY * width + pixelX) * 4;
 
                             const rVal = imageData[pixelIndex];

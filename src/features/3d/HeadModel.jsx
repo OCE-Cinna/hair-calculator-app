@@ -32,6 +32,11 @@ export const HeadModel = forwardRef((props, ref) => {
                 child.material.color.set(skinColor);
                 child.material.roughness = 0.6;
 
+                mask.flipY = false;
+                mask.needsUpdate = true;
+                patternMask.flipY = false;
+                patternMask.needsUpdate = true;
+
                 if (showScalpPattern) {
                     // Use emissive map to add the colorful lines over the brown skin without overriding it
                     child.material.emissiveMap = patternMask;
