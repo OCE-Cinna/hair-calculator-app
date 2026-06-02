@@ -17,9 +17,9 @@ export const BurgerMenu = ({ isOpen, onClose }) => {
         onClick={onClose}
       />
       <div
-        className={`fixed z-50 flex flex-col bg-glass-menu glass-responsive shadow-2xl transition-all duration-300 ease-in-out top-0 bottom-0 left-0 right-0 m-auto h-fit w-[calc(100vw-2rem)] max-w-sm max-h-[90dvh] rounded-3xl border border-divider-faint overflow-hidden lg:m-0 lg:top-0 lg:left-0 lg:bottom-auto lg:right-auto lg:h-full lg:w-80 lg:max-w-none lg:max-h-none lg:rounded-none lg:border-t-0 lg:border-b-0 lg:border-l-0 lg:border-r landscape:m-0 landscape:top-0 landscape:left-0 landscape:bottom-auto landscape:right-auto landscape:h-full landscape:w-80 landscape:max-w-none landscape:max-h-none landscape:rounded-none landscape:border-t-0 landscape:border-b-0 landscape:border-l-0 landscape:border-r ${isOpen ? 'opacity-100 scale-100 translate-x-0 pointer-events-auto' : 'opacity-0 scale-95 translate-x-0 pointer-events-none lg:opacity-100 lg:scale-100 lg:-translate-x-full landscape:opacity-100 landscape:scale-100 landscape:-translate-x-full'}`}
+        className={`fixed z-50 flex flex-col bg-glass-menu glass-responsive shadow-2xl transition-all duration-300 ease-in-out top-0 bottom-0 left-0 right-0 m-auto h-auto w-[calc(100vw-1rem)] max-w-sm max-h-[95dvh] rounded-3xl border border-divider-faint overflow-hidden lg:m-0 lg:top-0 lg:left-0 lg:bottom-auto lg:right-auto lg:h-full lg:w-80 lg:max-w-none lg:max-h-none lg:rounded-none lg:border-t-0 lg:border-b-0 lg:border-l-0 lg:border-r landscape:m-0 landscape:top-0 landscape:left-0 landscape:bottom-auto landscape:right-auto landscape:h-full landscape:w-80 landscape:max-w-none landscape:max-h-none landscape:rounded-none landscape:border-t-0 landscape:border-b-0 landscape:border-l-0 landscape:border-r ${isOpen ? 'opacity-100 scale-100 translate-x-0 pointer-events-auto' : 'opacity-0 scale-95 translate-x-0 pointer-events-none lg:opacity-100 lg:scale-100 lg:-translate-x-full landscape:opacity-100 landscape:scale-100 landscape:-translate-x-full'}`}
       >
-        <div className="flex items-center justify-between px-6 py-5 border-b border-divider-faint bg-glass-panel-muted transition-colors">
+        <div className="flex items-center justify-between px-4 py-3 lg:px-6 lg:py-5 border-b border-divider-faint bg-glass-panel-muted transition-colors shrink-0">
           <div>
             <span className="text-text-base font-bold text-lg tracking-tight">Cinna's PAH</span>
             <p className="text-brand mt-0.5 font-bold">Protective Afro-Hairstyle Visualizer</p>
@@ -33,7 +33,7 @@ export const BurgerMenu = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8 text-text-muted text-sm leading-relaxed transition-colors">
+        <div className="flex-1 overflow-y-auto px-4 py-4 lg:px-6 lg:py-6 space-y-6 lg:space-y-8 text-text-muted text-sm leading-relaxed transition-colors">
           <section>
             <div className="flex items-center gap-2 mb-3">
               <Info className="h-4 w-4 text-brand shrink-0" />
@@ -113,7 +113,7 @@ export const BurgerMenu = ({ isOpen, onClose }) => {
           </section>
         </div>
 
-        <div className="px-6 py-4 border-t border-divider-faint bg-glass-panel-muted flex items-center justify-between">
+        <div className="px-4 py-3 lg:px-6 lg:py-4 border-t border-divider-faint bg-glass-panel-muted flex items-center justify-between shrink-0">
         <span className="text-xs text-text-faintest">AGPLv3 License · Open Source</span>
         <a
           href="https://github.com/OCE-Cinna/hair-calculator-app"

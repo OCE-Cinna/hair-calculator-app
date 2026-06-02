@@ -157,7 +157,7 @@ ControlCard.Slider = ({ id, min, max, step, value, onChange, map, buttonLabels }
           aria-label={id}
           aria-valuetext={currentValueLabel}
           required
-          className="absolute top-1/2 -translate-y-1/2 appearance-none w-full h-10 bg-transparent cursor-grab z-10
+          className="absolute top-1/2 -translate-y-1/2 appearance-none w-full h-10 bg-transparent cursor-grab z-10 touch-pan-y
             [&::-webkit-slider-runnable-track]:h-0 [&::-moz-range-track]:h-0
             [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:h-8
             [&::-webkit-slider-thumb]:w-8 [&::-webkit-slider-thumb]:rounded-full
@@ -222,7 +222,7 @@ export function HairPacksPanel() {
 
   return (
     <div className="flex flex-col gap-3 h-full">
-      <ControlCard className="flex-1 overflow-y-auto overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
+      <ControlCard className="flex-1 overflow-visible">
         <ControlCard.Section title="Style">
           <ControlCard.StyleSelector
             value={stylePos}

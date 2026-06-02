@@ -129,8 +129,8 @@ export default function App() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.6, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-            className="flex-1 w-full lg:w-[300px] xl:w-[400px] landscape:w-[300px] xl:landscape:w-[400px] shrink-0 flex flex-col gap-0 lg:gap-3 landscape:gap-3 overflow-y-auto lg:overflow-visible landscape:overflow-visible overscroll-contain z-10"
-            style={{ WebkitOverflowScrolling: 'touch' }}
+            className="flex-1 w-full lg:w-[300px] xl:w-[400px] landscape:w-[300px] xl:landscape:w-[400px] shrink-0 flex flex-col gap-0 lg:gap-3 landscape:gap-3 overflow-y-auto overscroll-contain z-10"
+            style={{ WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }}
           >
             {/* Mobile Preset Gallery */}
             <div className="lg:hidden landscape:hidden border-b border-border-glass-strong bg-glass-panel/30 shrink-0">

@@ -15,7 +15,10 @@ export const LeftSidebar = ({ onOpenMenu, presetsOpen, onTogglePresets }) => {
   const btnActive = 'bg-brand/10 border-brand/30 text-brand';
 
   return (
-    <aside className="hidden lg:flex landscape:flex flex-col items-center gap-3 py-5 px-3 bg-glass glass-responsive border border-border-glass rounded-3xl shadow-glass transition-colors duration-500 shrink-0 w-16">
+    <aside 
+      className="hidden lg:flex landscape:flex flex-col items-center gap-3 landscape:gap-1.5 py-5 landscape:py-2 px-3 bg-glass glass-responsive border border-border-glass rounded-3xl shadow-glass transition-colors duration-500 shrink-0 w-16 landscape:w-14 landscape:overflow-y-auto"
+      style={{ scrollbarWidth: 'none' }}
+    >
       <div className="flex flex-col items-center gap-0.5 mb-1">
         <span className="text-brand font-black text-lg leading-none">C</span>
         <span className="text-text-faintest text-[8px] font-bold uppercase tracking-widest leading-none">PAH</span>
