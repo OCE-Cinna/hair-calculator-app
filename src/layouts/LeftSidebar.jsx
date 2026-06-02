@@ -16,7 +16,7 @@ export const LeftSidebar = ({ onOpenMenu, presetsOpen, onTogglePresets }) => {
 
   return (
     <aside 
-      className="hidden lg:flex landscape:flex flex-col items-center gap-3 landscape:gap-1.5 py-5 landscape:py-2 px-3 bg-glass glass-responsive border border-border-glass rounded-3xl shadow-glass transition-colors duration-500 shrink-0 w-16 landscape:w-14 landscape:overflow-y-auto"
+      className="hidden lg:flex landscape:flex flex-col items-center gap-3 landscape:gap-1.5 py-5 landscape:py-2 px-3 bg-glass glass-responsive border border-border-glass rounded-3xl shadow-glass transition-colors duration-500 shrink-0 w-16 landscape:w-14 landscape:overflow-y-auto landscape:overflow-x-hidden landscape:overscroll-none landscape:touch-pan-y"
       style={{ scrollbarWidth: 'none' }}
     >
       <div className="flex flex-col items-center gap-0.5 mb-1">
