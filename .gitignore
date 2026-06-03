@@ -61,3 +61,9 @@ src/assets/*.jpg
 src/assets/*.png
 src/App.jsx.old
 copilot-instruction.md
+
+# Agent Temporary Scripts
+*.cjs
+*.bat
+
+
