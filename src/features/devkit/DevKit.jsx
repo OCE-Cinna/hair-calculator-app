@@ -262,6 +262,20 @@ export const DevKit = () => {
                     </button>
                 </div>
 
+                {/* ── Bake Partings ── */}
+                <div className="flex items-center justify-between py-3">
+                    <div>
+                        <p className="text-xs font-bold text-text-base">Bake Partings</p>
+                        <p className="text-[10px] text-text-faintest">Generate box_braids.json</p>
+                    </div>
+                    <button
+                        onClick={() => useDevStore.getState().setShouldBake(true)}
+                        className="px-3 py-1 bg-brand text-white rounded-xl text-xs font-bold shadow-brand-subtle active:scale-95 transition-all"
+                    >
+                        Bake
+                    </button>
+                </div>
+
                 {/* ── Engine Calibration ── */}
                 <div className="py-3">
                     <SectionHeader

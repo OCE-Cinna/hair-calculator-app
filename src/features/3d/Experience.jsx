@@ -8,9 +8,9 @@ import { useShallow } from 'zustand/react/shallow';
 import { Selection, EffectComposer, Bloom, Noise, Vignette, ToneMapping } from '@react-three/postprocessing';
 import { ToneMappingMode } from 'postprocessing';
 import { HeadModel } from './HeadModel';
-import { usePartingPattern } from './hooks/usePartingPattern';
 import { BoxBraidsRenderer } from './styles/BoxBraidsRenderer';
 import { ViewportControls } from './ViewportControls';
+import { BakePartings } from '../devkit/BakePartings';
 
 /**
  * Internal Error Boundary to catch 3D-specific crashes (loading, WebGL context, etc.)
@@ -107,11 +107,13 @@ function DynamicLighting({ isMobile }) {
 function ThreeDSceneContent({ isMobile }) {
     const [headGroup, setHeadGroup] = useState(null);
     const { theme } = useHairStore(useShallow(state => ({ theme: state.theme })));
-    const { assets, debugRaycast, isEnabled: devEnabled, DEV_CONFIG } = useDevStore(useShallow(state => ({
+    const { assets, debugRaycast, isEnabled: devEnabled, DEV_CONFIG, shouldBake, setShouldBake } = useDevStore(useShallow(state => ({
         assets: state.assets,
         debugRaycast: state.debugRaycast,
         isEnabled: state.isEnabled,
-        DEV_CONFIG: state.DEV_CONFIG
+        DEV_CONFIG: state.DEV_CONFIG,
+        shouldBake: state.shouldBake,
+        setShouldBake: state.setShouldBake
     })));
 
     // OVERRIDE FOR BASELINE FOCUS MODE:
@@ -127,20 +129,12 @@ function ThreeDSceneContent({ isMobile }) {
         : (assets.scalp_mask || "/textures/scalp_mask.jpeg");
 
     const mask = useTexture(maskPath);
-    const hairPlacementPoints = usePartingPattern(headGroup, mask, focusStylePos, focusDensityPos, assets.custom_bust);
+    
+    // We no longer raycast dynamically. The data is loaded directly in BoxBraidsRenderer.
 
-    const debugMeshRef = useRef();
     useEffect(() => {
-        if (debugMeshRef.current && devEnabled && debugRaycast) {
-            const matrix = new THREE.Matrix4();
-            hairPlacementPoints.forEach((p, i) => {
-                matrix.setPosition(p.position);
-                debugMeshRef.current.setMatrixAt(i, matrix);
-            });
-            debugMeshRef.current.count = hairPlacementPoints.length;
-            debugMeshRef.current.instanceMatrix.needsUpdate = true;
-        }
-    }, [hairPlacementPoints, devEnabled, debugRaycast]);
+        // Debug orbs are now handled differently or disabled since we removed real-time point generation
+    }, [devEnabled, debugRaycast]);
 
     // Dynamic background color from CSS variable
     const [bgColor, setBgColor] = useState('#f3f4f6');
@@ -160,7 +154,8 @@ function ThreeDSceneContent({ isMobile }) {
                 <GizmoViewport axisColors={['#ff3b30', '#34c759', '#007aff']} labelColor="white" />
             </GizmoHelper>
             <HeadModel ref={setHeadGroup} />
-            <BoxBraidsRenderer stylePos={focusStylePos} lengthPos={focusLengthPos} thicknessPos={focusThicknessPos} hairPlacementPoints={hairPlacementPoints} />
+            {shouldBake && <BakePartings headGroup={headGroup} mask={mask} onComplete={() => setShouldBake(false)} />}
+            <BoxBraidsRenderer stylePos={focusStylePos} lengthPos={focusLengthPos} densityPos={focusDensityPos} thicknessPos={focusThicknessPos} />
 
             {/* POST-PROCESSING - Throttled on mobile */}
             <EffectComposer disableNormalPass multisampling={isMobile ? 0 : 8}>
@@ -180,11 +175,6 @@ function ThreeDSceneContent({ isMobile }) {
             {/* DEBUG VISUALIZATION: Render orbs at spawn points using InstancedMesh */}
             {devEnabled && debugRaycast && (
                 <>
-                    <instancedMesh ref={debugMeshRef} args={[null, null, 1000]}>
-                        <sphereGeometry args={[0.015, 8, 8]} />
-                        <meshBasicMaterial color="#FF6B00" />
-                    </instancedMesh>
-
                     {/* Collision Boundaries */}
                     <group opacity={0.3}>
                         <mesh position={[0, DEV_CONFIG.headCenterY || 1.5, DEV_CONFIG.headCenterZ || 0.0]}>
