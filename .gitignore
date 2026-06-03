@@ -56,6 +56,64 @@ TODO.md
 
 # Junk assets and backups
 src/assets/Untitled.blend*
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/
+.github/
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Testing
+coverage/
+test_output.txt
+test_full_log.txt
+
+# Production
+build/
+.vercel
+.netlify
+
+# Vite
+.vite
+
+# Documents
+docs/
+*.pdf
+*.docx
+*.pptx
+*.xlsx
+*devlog*
+*DEVLOG*
+
+# AI Assistant Context
+.agents/
+
+# Planning & Reference
+Project Plan-1.pdf
+Projectplan.txt
+glassmorphism-reference.md
+TODO.md
+
+# Junk assets and backups
+src/assets/Untitled.blend*
 src/assets/*.jpeg
 src/assets/*.jpg
 src/assets/*.png
@@ -65,5 +123,4 @@ copilot-instruction.md
 # Agent Temporary Scripts
 *.cjs
 *.bat
-
-
+lint-output.txt
