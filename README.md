@@ -2,7 +2,7 @@
 
 A Semester 3 HBO-ICT student project at Fontys University of Applied Sciences. The application digitizes experience-based knowledge in Afro-hair care, helping users estimate hair extension requirements through a formula-backed pack calculator and a real-time 3D braid visualizer.
 
-> **Live demo:** [hair-calculator-app.web.app](https://hair-calculator-app.web.app)
+> **Live demo:** [cinna-pah.web.app](https://cinna-pah.web.app)
 
 ---
 
